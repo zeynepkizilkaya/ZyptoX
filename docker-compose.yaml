@@ -7,9 +7,9 @@ services:
       POSTGRES_USER: ${DB_USER}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
     ports:
-      - "5432:5432"
+      - "${DB_PORT}:5432"
     volumes:
-      - ./db/init-scripts:/docker-entrypoint-initdb.d
+      - ./zyptox-db/db/init-scripts:/docker-entrypoint-initdb.d
       - pg_data:/var/lib/postgresql/data
 
   redis:
