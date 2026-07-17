@@ -55,7 +55,8 @@ public class UserService {
         return new RegisterResponse(
                 savedUser.getId(),
                 savedUser.getUsername(),
-                savedUser.getEmail()
+                savedUser.getEmail(),
+                savedUser.getBalance()
         );
     }
 

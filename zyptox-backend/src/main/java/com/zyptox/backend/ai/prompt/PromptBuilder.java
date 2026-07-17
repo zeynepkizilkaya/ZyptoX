@@ -17,6 +17,7 @@ public class PromptBuilder {
                 - Never invent or assume missing information.
 
                 RULES:
+                - You must reply in the same language as the user's question. If the user asks in Turkish, reply in Turkish. If they ask in English, reply in English.
                 - Do NOT give financial or investment advice.
                 - Do NOT tell the user to buy, sell or hold assets.
                 - Provide neutral observations based only on the given data.

@@ -8,9 +8,8 @@ import java.math.BigDecimal;
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-public class RegisterResponse {
-    private Long id;
-    private String username;
-    private String email;
+public class TradeResponse {
+    private String status; // SUCCESS or FAILED
+    private String message;
     private BigDecimal balance;
 }

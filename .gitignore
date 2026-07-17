@@ -23,5 +23,15 @@
 hs_err_pid*
 replay_pid*
 
-
+# Project files
 .env
+.idea/
+.vscode/
+
+# Frontend builds & dependencies
+zyptox-frontend/node_modules/
+zyptox-frontend/dist/
+
+# Backend builds
+zyptox-backend/target/
+zyptox-backend/.mvn/

@@ -3,8 +3,11 @@ package com.zyptox.backend.ai.controller;
 import com.zyptox.backend.ai.dto.ChatRequest;
 import com.zyptox.backend.ai.dto.ChatResponse;
 import com.zyptox.backend.ai.service.AIChatService;
+import com.zyptox.backend.dto.UserSession;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -21,10 +24,11 @@ public class AIChatController {
     public ResponseEntity<ChatResponse> chat(
             @Valid @RequestBody ChatRequest request
     ) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        UserSession session = (UserSession) authentication.getPrincipal();
 
-        ChatResponse response = aiChatService.chat(request.getMessage());
+        ChatResponse response = aiChatService.chat(session.getId(), request.getMessage());
 
         return ResponseEntity.ok(response);
     }
-
 }
