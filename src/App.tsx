@@ -21,6 +21,10 @@ function App() {
     }
   }, [isAuthenticated, activeTab]);
 
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [activeTab]);
+
   const renderTabContent = () => {
     switch (activeTab) {
       case 'dashboard':
@@ -124,7 +128,7 @@ function App() {
   return (
     <div className="min-h-screen flex flex-col bg-white dark:bg-canvas-dark text-ink dark:text-on-dark font-sans">
       <Navbar activeTab={activeTab} setActiveTab={setActiveTab} />
-      <main className="flex-1 w-full">
+      <main className="flex-1 w-full flex flex-col">
         {renderTabContent()}
       </main>
       <Footer />

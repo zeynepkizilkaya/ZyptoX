@@ -288,10 +288,10 @@ export const Portfolio: React.FC<PortfolioProps> = ({ onTradeSelect }) => {
   }, [user?.balance, portfolioHoldings]);
 
   const displayAllocationItems = useMemo(() => {
-    if (allocationItems.length <= 6) return allocationItems;
+    if (allocationItems.length <= 10) return allocationItems;
 
-    const topItems = allocationItems.slice(0, 5);
-    const otherItems = allocationItems.slice(5);
+    const topItems = allocationItems.slice(0, 9);
+    const otherItems = allocationItems.slice(9);
     const otherValue = otherItems.reduce((sum, item) => sum + item.value, 0);
     const otherPercentage = otherItems.reduce((sum, item) => sum + item.percentage, 0);
 
@@ -941,7 +941,11 @@ export const Portfolio: React.FC<PortfolioProps> = ({ onTradeSelect }) => {
                 </div>
               </div>
 
-              <div className="flex flex-col gap-2 flex-grow min-w-0 w-full sm:w-auto text-left">
+              <div className={`grid gap-x-6 gap-y-1.5 flex-grow min-w-0 w-full sm:w-auto text-left ${
+                displayAllocationItems.length > 5 
+                  ? 'grid-cols-2 sm:grid-cols-2' 
+                  : 'grid-cols-1'
+              }`}>
                 {displayAllocationItems.map((item, idx) => {
                   const isHovered = hoveredSlice === item.symbol;
                   return (
