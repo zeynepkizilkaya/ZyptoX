@@ -6,13 +6,12 @@
   body {
     @apply font-sans antialiased;
   }
-  
+
   .font-mono {
     font-variant-numeric: tabular-nums;
   }
 }
 
-/* Custom styles for smooth scrolling and clean styling */
 ::-webkit-scrollbar {
   width: 6px;
   height: 6px;

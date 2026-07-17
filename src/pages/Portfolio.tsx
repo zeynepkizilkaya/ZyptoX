@@ -9,8 +9,6 @@ interface PortfolioProps {
   onTradeSelect: (symbol: string, action: 'BUY' | 'SELL') => void;
 }
 
-
-// Sleek Custom Coin Badges for a Premium Interface (Gradient & Text Badge)
 export const CoinIcon: React.FC<{ symbol: string; className?: string }> = ({ symbol, className = 'w-6 h-6' }) => {
   const gradientStyles: Record<string, string> = {
     BTC: 'from-[#f7931a] to-[#d97706]',
@@ -38,7 +36,7 @@ export const CoinIcon: React.FC<{ symbol: string; className?: string }> = ({ sym
   );
 };
 
-// Asset colors for allocation chart
+// coin colors
 const ALLOCATION_COLORS: Record<string, string> = {
   USD: '#64748b',
   Cash: '#64748b',
@@ -165,21 +163,17 @@ export const Portfolio: React.FC<PortfolioProps> = ({ onTradeSelect }) => {
   const [transactions, setTransactions] = useState<Transaction[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
 
-  // Interaction Sync States
   const [hoveredSymbol, setHoveredSymbol] = useState<string | null>(null);
   const [hoveredEquityIdx, setHoveredEquityIdx] = useState<number | null>(null);
   const [hoveredSlice, setHoveredSlice] = useState<string | null>(null);
 
-  // Timeframe state for the main portfolio value chart
   const [timeframe, setTimeframe] = useState<'24H' | '7D' | '1M' | '1Y' | 'ALL'>('7D');
 
-  // Deposit Cash Simulator modal states
   const [showDepositModal, setShowDepositModal] = useState(false);
   const [depositAmount, setDepositAmount] = useState('5000');
   const [isDepositing, setIsDepositing] = useState(false);
   const [depositSuccess, setDepositSuccess] = useState(false);
 
-  // Sorting & Filtering States
   const [searchQuery, setSearchQuery] = useState('');
   const [sortField, setSortField] = useState<'symbol' | 'amount' | 'value' | 'roiPercent'>('value');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>('desc');
@@ -284,7 +278,6 @@ export const Portfolio: React.FC<PortfolioProps> = ({ onTradeSelect }) => {
       });
     }
 
-    // Sort by value descending
     items.sort((a, b) => b.value - a.value);
 
     const total = items.reduce((sum, item) => sum + item.value, 0);
@@ -315,8 +308,6 @@ export const Portfolio: React.FC<PortfolioProps> = ({ onTradeSelect }) => {
   }, [allocationItems]);
 
 
-
-  // Dynamic multi-timeframe equity chart data simulation
   const equityData = useMemo(() => {
     if (!user) return [];
 
@@ -363,7 +354,6 @@ export const Portfolio: React.FC<PortfolioProps> = ({ onTradeSelect }) => {
       let val = day1Val + trend * fraction;
 
       if (i > 0 && i < pointsCount - 1) {
-        // Compose smooth sinusoids for elegant look
         const noise =
           (Math.sin(i * 1.9) * 0.07 + Math.cos(i * 3.1) * 0.03) *
           (Math.abs(trend) || day7Val * baseVol);
@@ -424,8 +414,6 @@ export const Portfolio: React.FC<PortfolioProps> = ({ onTradeSelect }) => {
 
   const chartColor = isChartUp ? '#10b981' : '#ef4444';
 
-
-  // Handle line chart hover
   const handleEquityMouseMove = (e: React.MouseEvent<SVGSVGElement>) => {
     if (equityData.length === 0) return;
     const rect = e.currentTarget.getBoundingClientRect();
@@ -435,7 +423,6 @@ export const Portfolio: React.FC<PortfolioProps> = ({ onTradeSelect }) => {
     setHoveredEquityIdx(idx);
   };
 
-  // Perform deposit to mock account
   const handleDeposit = async () => {
     const amt = parseFloat(depositAmount);
     if (isNaN(amt) || amt <= 0) return;
@@ -459,7 +446,6 @@ export const Portfolio: React.FC<PortfolioProps> = ({ onTradeSelect }) => {
     }, 1000);
   };
 
-  // Sorting Handler
   const handleSort = (field: typeof sortField) => {
     if (sortField === field) {
       setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
@@ -469,7 +455,6 @@ export const Portfolio: React.FC<PortfolioProps> = ({ onTradeSelect }) => {
     }
   };
 
-  // Filtered and Sorted list of holdings for rendering in table
   const filteredAndSortedHoldings = useMemo(() => {
     return portfolioHoldings
       .filter(hold => {
@@ -497,7 +482,6 @@ export const Portfolio: React.FC<PortfolioProps> = ({ onTradeSelect }) => {
       });
   }, [portfolioHoldings, searchQuery, sortField, sortOrder, performanceFilter]);
 
-  // Mini sparkline renderer inside the table
   const renderSparkline = (points: number[] | undefined, change24h: number) => {
     if (!points || points.length === 0) return <div className="text-muted text-[10px]">—</div>;
     const min = Math.min(...points);
@@ -604,17 +588,15 @@ export const Portfolio: React.FC<PortfolioProps> = ({ onTradeSelect }) => {
                 </span>
               </div>
 
-              {/* Timeframe Selector Tabs */}
               <div className="flex rounded-lg bg-canvas-light dark:bg-canvas-dark p-0.5 border border-hairline-light dark:border-hairline-dark">
                 {(['24H', '7D', '1M', '1Y', 'ALL'] as const).map(tf => (
                   <button
                     key={tf}
                     onClick={() => setTimeframe(tf)}
-                    className={`px-3 py-1 text-[10px] font-bold rounded-md transition-all duration-150 ${
-                      timeframe === tf
-                        ? 'bg-white dark:bg-surface-card-dark text-primary shadow-sm'
-                        : 'text-muted hover:text-ink dark:hover:text-on-dark'
-                    }`}
+                    className={`px-3 py-1 text-[10px] font-bold rounded-md transition-all duration-150 ${timeframe === tf
+                      ? 'bg-white dark:bg-surface-card-dark text-primary shadow-sm'
+                      : 'text-muted hover:text-ink dark:hover:text-on-dark'
+                      }`}
                   >
                     {tf}
                   </button>
@@ -643,16 +625,13 @@ export const Portfolio: React.FC<PortfolioProps> = ({ onTradeSelect }) => {
                     </filter>
                   </defs>
 
-                  {/* Horizontal dotted gridlines */}
                   <line x1="30" y1="20" x2="470" y2="20" stroke="currentColor" strokeOpacity="0.03" strokeDasharray="3,3" />
                   <line x1="30" y1="65" x2="470" y2="65" stroke="currentColor" strokeOpacity="0.03" strokeDasharray="3,3" />
                   <line x1="30" y1="110" x2="470" y2="110" stroke="currentColor" strokeOpacity="0.06" />
 
-                  {/* Main paths */}
                   <path d={equityAreaPath} fill="url(#gradient-equity)" />
                   <path d={equityLinePath} fill="none" stroke={chartColor} strokeWidth="2.5" strokeLinecap="round" filter="url(#glow-equity)" />
 
-                  {/* Time Axis Labels */}
                   {equityData.map((d, i) => {
                     const showLabel = equityData.length < 10 || i % 2 === 0 || i === equityData.length - 1;
                     if (!showLabel || !d.day) return null;
@@ -663,7 +642,6 @@ export const Portfolio: React.FC<PortfolioProps> = ({ onTradeSelect }) => {
                     );
                   })}
 
-                  {/* Interactive Tooltip Vertical Bar */}
                   {hoveredEquityIdx !== null && (
                     <>
                       <line
@@ -683,7 +661,6 @@ export const Portfolio: React.FC<PortfolioProps> = ({ onTradeSelect }) => {
                         className="stroke-white dark:stroke-canvas-dark stroke-2"
                       />
 
-                      {/* Premium Tooltip overlay inside SVG */}
                       <g transform={`translate(${Math.max(55, Math.min(445, 30 + (hoveredEquityIdx / (equityData.length - 1)) * 440)) - 55}, 5)`}>
                         <rect width="110" height="24" rx="6" className="fill-ink dark:fill-on-dark opacity-95 shadow-lg" />
                         <text x="55" y="15" textAnchor="middle" className="fill-white dark:fill-canvas-dark text-[9px] font-mono font-bold select-none">
@@ -697,12 +674,10 @@ export const Portfolio: React.FC<PortfolioProps> = ({ onTradeSelect }) => {
             </div>
           </div>
 
-          {/* Crypto Assets Table Widget */}
           <div className="flex flex-col gap-4">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <h3 className="text-lg font-bold">My Crypto Assets</h3>
 
-              {/* Table search and sorting controllers */}
               <div className="flex flex-wrap items-center gap-2">
                 <div className="relative">
                   <input
@@ -717,17 +692,15 @@ export const Portfolio: React.FC<PortfolioProps> = ({ onTradeSelect }) => {
                   </svg>
                 </div>
 
-                {/* Performance Filter Selector */}
                 <div className="flex rounded-lg bg-canvas-light dark:bg-canvas-dark p-0.5 border border-hairline-light dark:border-hairline-dark">
                   {(['all', 'gainers', 'losers'] as const).map(f => (
                     <button
                       key={f}
                       onClick={() => setPerformanceFilter(f)}
-                      className={`px-2.5 py-1 text-[9px] font-black rounded-md capitalize transition-colors duration-100 ${
-                        performanceFilter === f
-                          ? 'bg-white dark:bg-surface-card-dark text-primary shadow-xs'
-                          : 'text-muted hover:text-ink dark:hover:text-on-dark'
-                      }`}
+                      className={`px-2.5 py-1 text-[9px] font-black rounded-md capitalize transition-colors duration-100 ${performanceFilter === f
+                        ? 'bg-white dark:bg-surface-card-dark text-primary shadow-xs'
+                        : 'text-muted hover:text-ink dark:hover:text-on-dark'
+                        }`}
                     >
                       {f}
                     </button>
@@ -768,11 +741,10 @@ export const Portfolio: React.FC<PortfolioProps> = ({ onTradeSelect }) => {
                           key={hold.symbol}
                           onMouseEnter={() => setHoveredSymbol(hold.symbol)}
                           onMouseLeave={() => setHoveredSymbol(null)}
-                          className={`border-b border-hairline-light/50 dark:border-hairline-dark/30 text-xs font-semibold transition-all duration-100 ${
-                            isHovered
-                              ? 'bg-slate-50/70 dark:bg-surface-elevated-dark/20'
-                              : 'hover:bg-slate-50/30 dark:hover:bg-surface-elevated-dark/10'
-                          }`}
+                          className={`border-b border-hairline-light/50 dark:border-hairline-dark/30 text-xs font-semibold transition-all duration-100 ${isHovered
+                            ? 'bg-slate-50/70 dark:bg-surface-elevated-dark/20'
+                            : 'hover:bg-slate-50/30 dark:hover:bg-surface-elevated-dark/10'
+                            }`}
                         >
                           <td className="py-3 pl-3">
                             <div className="flex items-center gap-2.5">
@@ -827,13 +799,10 @@ export const Portfolio: React.FC<PortfolioProps> = ({ onTradeSelect }) => {
           </div>
         </div>
 
-        {/* Right Column: Performance highlights grid + Son işlemler */}
         <div className="flex flex-col gap-6">
-          {/* Asset Allocation Widget (Donut Chart) */}
           <div className="p-5 bg-white dark:bg-surface-card-dark border border-hairline-light dark:border-hairline-dark rounded-2xl shadow-sm flex flex-col gap-4 animate-fade-in">
             <h3 className="text-sm font-bold text-ink dark:text-on-dark text-left">Portfolio Allocation</h3>
-            
-            {/* CASH BALANCE Sub-Card */}
+
             <div className="bg-slate-50 dark:bg-canvas-dark border border-hairline-light/60 dark:border-hairline-dark/25 rounded-xl p-3.5 flex flex-col text-left">
               <span className="text-[9px] text-muted font-bold uppercase tracking-wider font-sans">Cash Balance</span>
               <span className="text-xl font-extrabold text-ink dark:text-on-dark font-mono mt-0.5">
@@ -841,46 +810,44 @@ export const Portfolio: React.FC<PortfolioProps> = ({ onTradeSelect }) => {
               </span>
             </div>
 
-            {/* Donut Chart and Legend Row */}
             <div className="flex flex-col sm:flex-row items-center justify-center sm:justify-between gap-5 mt-1">
-              {/* Donut SVG */}
               <div className="relative w-36 h-36 flex-shrink-0 flex items-center justify-center">
                 {(() => {
                   const r = 38;
                   const C = 2 * Math.PI * r;
                   const ARC = C * 0.75;
-                  
+
                   const handleSvgMouseMove = (e: React.MouseEvent<SVGSVGElement>) => {
                     const rect = e.currentTarget.getBoundingClientRect();
                     const size = 100;
                     const cx = 50;
                     const cy = 50;
                     const strokeWidth = 8;
-                    
+
                     const mx = ((e.clientX - rect.left) / rect.width) * size - cx;
                     const my = ((e.clientY - rect.top) / rect.height) * size - cy;
-                    
+
                     const dist = Math.sqrt(mx * mx + my * my);
                     if (dist < r - strokeWidth / 2 - 2 || dist > r + strokeWidth / 2 + 2) {
                       setHoveredSlice(null);
                       return;
                     }
-                    
+
                     let angleRad = Math.atan2(my, mx);
                     let angleDeg = (angleRad * 180) / Math.PI;
-                    
+
                     let adjustedAngle = angleDeg - 135;
                     if (adjustedAngle < 0) {
                       adjustedAngle += 360;
                     }
-                    
+
                     if (adjustedAngle > 270) {
                       setHoveredSlice(null);
                       return;
                     }
-                    
+
                     const arcPos = (adjustedAngle / 270) * ARC;
-                    
+
                     let cumulativeOffset = 0;
                     for (const item of displayAllocationItems) {
                       const segLen = (item.percentage / 100) * ARC;
@@ -890,7 +857,7 @@ export const Portfolio: React.FC<PortfolioProps> = ({ onTradeSelect }) => {
                       }
                       cumulativeOffset += segLen;
                     }
-                    
+
                     setHoveredSlice(null);
                   };
 
@@ -901,7 +868,6 @@ export const Portfolio: React.FC<PortfolioProps> = ({ onTradeSelect }) => {
                       onMouseMove={handleSvgMouseMove}
                       onMouseLeave={() => setHoveredSlice(null)}
                     >
-                      {/* Background Circle */}
                       <circle
                         cx="50"
                         cy="50"
@@ -914,16 +880,15 @@ export const Portfolio: React.FC<PortfolioProps> = ({ onTradeSelect }) => {
                         strokeDashoffset={0}
                         transform="rotate(135 50 50)"
                       />
-                      {/* Slices */}
                       {(() => {
                         let cumulativeOffset = 0;
                         return displayAllocationItems.map((item, idx) => {
                           const segLen = (item.percentage / 100) * ARC;
                           const strokeOffset = -cumulativeOffset;
                           cumulativeOffset += segLen;
-                          
+
                           const isHovered = hoveredSlice === item.symbol;
-                          
+
                           return (
                             <circle
                               key={idx}
@@ -944,8 +909,7 @@ export const Portfolio: React.FC<PortfolioProps> = ({ onTradeSelect }) => {
                     </svg>
                   );
                 })()}
-                
-                {/* Center text */}
+
                 <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none text-center px-2">
                   {(() => {
                     if (hoveredSlice) {
@@ -977,16 +941,14 @@ export const Portfolio: React.FC<PortfolioProps> = ({ onTradeSelect }) => {
                 </div>
               </div>
 
-              {/* Legend List */}
               <div className="flex flex-col gap-2 flex-grow min-w-0 w-full sm:w-auto text-left">
                 {displayAllocationItems.map((item, idx) => {
                   const isHovered = hoveredSlice === item.symbol;
                   return (
                     <div
                       key={idx}
-                      className={`flex items-center justify-between gap-2.5 py-0.5 px-2 -mx-2 rounded-lg transition-colors duration-150 cursor-pointer ${
-                        isHovered ? 'bg-slate-100/60 dark:bg-surface-elevated-dark/25' : 'hover:bg-slate-50 dark:hover:bg-surface-elevated-dark/10'
-                      }`}
+                      className={`flex items-center justify-between gap-2.5 py-0.5 px-2 -mx-2 rounded-lg transition-colors duration-150 cursor-pointer ${isHovered ? 'bg-slate-100/60 dark:bg-surface-elevated-dark/25' : 'hover:bg-slate-50 dark:hover:bg-surface-elevated-dark/10'
+                        }`}
                       onMouseEnter={() => setHoveredSlice(item.symbol)}
                       onMouseLeave={() => setHoveredSlice(null)}
                     >
@@ -1009,7 +971,6 @@ export const Portfolio: React.FC<PortfolioProps> = ({ onTradeSelect }) => {
             </div>
           </div>
 
-          {/* Transactions List Widget */}
           <div className="flex flex-col gap-4">
             <h3 className="text-lg font-bold">Recent Transactions</h3>
 
@@ -1025,9 +986,8 @@ export const Portfolio: React.FC<PortfolioProps> = ({ onTradeSelect }) => {
                     >
                       <div className="flex justify-between text-xs font-bold">
                         <span className="flex items-center gap-1.5">
-                          <span className={`px-1.5 py-0.2 rounded-md text-[9px] font-black tracking-wide ${
-                            tx.type === 'BUY' ? 'bg-trading-up/10 text-trading-up' : 'bg-trading-down/10 text-trading-down'
-                          }`}>
+                          <span className={`px-1.5 py-0.2 rounded-md text-[9px] font-black tracking-wide ${tx.type === 'BUY' ? 'bg-trading-up/10 text-trading-up' : 'bg-trading-down/10 text-trading-down'
+                            }`}>
                             {tx.type}
                           </span>
                           <span className="text-ink dark:text-on-dark">{tx.symbol}</span>
@@ -1053,7 +1013,6 @@ export const Portfolio: React.FC<PortfolioProps> = ({ onTradeSelect }) => {
         </div>
       </div>
 
-      {/* Premium Deposit Modal Portal Popup */}
       {showDepositModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm animate-fade-in">
           <div className="bg-white dark:bg-surface-card-dark border border-hairline-light dark:border-hairline-dark rounded-2xl p-6 w-full max-w-sm shadow-2xl flex flex-col gap-4 animate-scale-up font-sans text-left">

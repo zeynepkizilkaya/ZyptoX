@@ -27,7 +27,7 @@ const getSparklinePoints = (sparkline: number[]) => {
 export const Dashboard: React.FC<DashboardProps> = ({ onTradeSelect, onSignUpSelect, onGoToPortfolio }) => {
   const { prices, isPolling, setIsPolling, refreshPrices } = useMarket();
   const { user, isAuthenticated } = useAuth();
-  
+
   const [activeTab, setActiveTab] = useState<'popular' | 'new' | 'gainers'>('popular');
   const [searchValue, setSearchValue] = useState('');
   const [assets, setAssets] = useState<Asset[]>([]);
@@ -59,7 +59,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onTradeSelect, onSignUpSel
     if (activeTab === 'new') {
       return list.filter(p => ['SOL', 'ADA', 'DOT', 'DOGE', 'AVAX'].includes(p.symbol));
     }
-    
+
     if (activeTab === 'gainers') {
       return list.sort((a, b) => b.change24h - a.change24h).slice(0, 5);
     }
@@ -74,10 +74,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ onTradeSelect, onSignUpSel
 
   return (
     <div className="flex flex-col w-full font-sans bg-white dark:bg-canvas-dark text-ink dark:text-on-dark">
-      
+
       <section className="w-full bg-[#fafafa] dark:bg-canvas-dark py-20 border-b border-hairline-light dark:border-hairline-dark text-left">
         <div className="max-w-[1280px] mx-auto px-6 flex flex-col lg:flex-row items-center justify-between gap-12">
-          
+
           <div className="flex flex-col gap-6 max-w-2xl">
             <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-primary/20 text-primary-active dark:text-primary text-xs font-bold rounded-full w-max select-none">
               ⚡️ NEXT-GEN TRADING
@@ -91,14 +91,14 @@ export const Dashboard: React.FC<DashboardProps> = ({ onTradeSelect, onSignUpSel
 
             {isAuthenticated ? (
               <div className="mt-4 flex flex-wrap gap-4">
-                <Button 
-                  variant="primary-pill" 
+                <Button
+                  variant="primary-pill"
                   onClick={() => onTradeSelect('BTC', 'BUY')}
                   className="h-12 px-8 text-sm font-bold"
                 >
                   Go to Trade Terminal
                 </Button>
-                <button 
+                <button
                   type="button"
                   onClick={onGoToPortfolio}
                   className="inline-flex items-center justify-center font-sans font-semibold text-sm h-12 px-8 rounded-pill border border-hairline-light dark:border-hairline-dark hover:bg-surface-strong-light dark:hover:bg-surface-elevated-dark text-ink dark:text-on-dark transition-colors duration-150"
@@ -108,14 +108,14 @@ export const Dashboard: React.FC<DashboardProps> = ({ onTradeSelect, onSignUpSel
               </div>
             ) : (
               <div className="mt-4 flex flex-wrap gap-4">
-                <Button 
-                  variant="primary-pill" 
+                <Button
+                  variant="primary-pill"
                   onClick={onSignUpSelect}
                   className="h-12 px-8 text-sm font-bold"
                 >
                   Get Started
                 </Button>
-                <button 
+                <button
                   type="button"
                   onClick={() => {
                     const el = document.getElementById('market-outlook');
@@ -143,40 +143,38 @@ export const Dashboard: React.FC<DashboardProps> = ({ onTradeSelect, onSignUpSel
                 Live Feed
               </span>
             </div>
-            
+
             <div className="grid grid-cols-2 gap-4 mt-1">
               {liveMarketItems.map((item) => {
                 const isUp = item.change24h >= 0;
                 const assetHolding = assets.find(a => a.symbol === item.symbol);
                 const heldAmount = assetHolding ? assetHolding.amount : 0;
-                
+
                 return (
                   <div
                     key={item.symbol}
                     onClick={() => onTradeSelect(item.symbol, 'BUY')}
-                    className={`p-4 border rounded-2xl flex flex-col text-left transition-all duration-200 cursor-pointer hover:-translate-y-0.5 hover:shadow-md h-auto ${
-                      isUp
+                    className={`p-4 border rounded-2xl flex flex-col text-left transition-all duration-200 cursor-pointer hover:-translate-y-0.5 hover:shadow-md h-auto ${isUp
                         ? 'bg-emerald-50/20 border-emerald-100/50 dark:bg-emerald-950/10 dark:border-emerald-900/25'
                         : 'bg-rose-50/20 border-rose-100/50 dark:bg-rose-950/10 dark:border-rose-900/25'
-                    }`}
+                      }`}
                   >
                     <div className="flex justify-between items-center">
                       <span className="text-sm font-black text-ink dark:text-on-dark">{item.symbol}</span>
-                      <span className={`px-2 py-0.5 rounded-md text-[10px] font-black tracking-wide ${
-                        isUp ? 'bg-emerald-500/15 text-trading-up' : 'bg-rose-500/15 text-trading-down'
-                      }`}>
+                      <span className={`px-2 py-0.5 rounded-md text-[10px] font-black tracking-wide ${isUp ? 'bg-emerald-500/15 text-trading-up' : 'bg-rose-500/15 text-trading-down'
+                        }`}>
                         {isUp ? '+' : ''}{item.change24h.toFixed(2)}%
                       </span>
                     </div>
-                    
+
                     <span className="text-[10px] text-muted-strong dark:text-muted/70 font-medium font-sans leading-none mt-1 select-none">
                       {item.symbol}USDT
                     </span>
-                    
+
                     <div className="text-lg font-black font-mono text-ink dark:text-on-dark mt-2">
                       ${item.price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                     </div>
-                    
+
                     <div className="flex flex-col gap-1 mt-3.5 border-t border-hairline-light/40 dark:border-hairline-dark/15 pt-2 select-none">
                       <div className="text-[9px] text-muted-strong dark:text-muted/60 font-bold uppercase tracking-wider">24h</div>
                       {isAuthenticated && (
@@ -196,10 +194,10 @@ export const Dashboard: React.FC<DashboardProps> = ({ onTradeSelect, onSignUpSel
 
       <section id="market-outlook" className="w-full py-16 text-left bg-white dark:bg-canvas-dark">
         <div className="max-w-[1280px] mx-auto px-6 flex flex-col gap-6">
-          
+
           <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
             <h2 className="text-2xl font-bold text-ink dark:text-on-dark">Market Outlook</h2>
-            
+
             <div className="flex flex-wrap items-center gap-4">
               <input
                 type="text"
@@ -217,19 +215,17 @@ export const Dashboard: React.FC<DashboardProps> = ({ onTradeSelect, onSignUpSel
                 </svg>
                 Refresh
               </button>
-              
+
               <div className="flex items-center gap-2 select-none">
                 <span className="text-xs text-muted">Live Feed (15s):</span>
                 <button
                   onClick={() => setIsPolling(!isPolling)}
-                  className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
-                    isPolling ? 'bg-primary' : 'bg-muted/40'
-                  }`}
+                  className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${isPolling ? 'bg-primary' : 'bg-muted/40'
+                    }`}
                 >
                   <span
-                    className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${
-                      isPolling ? 'translate-x-[18px]' : 'translate-x-[2px]'
-                    }`}
+                    className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${isPolling ? 'translate-x-[18px]' : 'translate-x-[2px]'
+                      }`}
                   />
                 </button>
               </div>
@@ -237,29 +233,26 @@ export const Dashboard: React.FC<DashboardProps> = ({ onTradeSelect, onSignUpSel
           </div>
 
           <div className="w-full bg-[#fafafa] dark:bg-surface-card-dark border border-hairline-light dark:border-hairline-dark rounded-xl p-6 shadow-sm overflow-x-auto">
-            
+
             <div className="flex gap-6 border-b border-hairline-light dark:border-hairline-dark mb-4 pb-1">
               <button
                 onClick={() => setActiveTab('popular')}
-                className={`text-sm font-semibold pb-2 border-b-2 transition-colors ${
-                  activeTab === 'popular' ? 'border-primary text-ink dark:text-on-dark' : 'border-transparent text-muted hover:text-ink dark:hover:text-on-dark'
-                }`}
+                className={`text-sm font-semibold pb-2 border-b-2 transition-colors ${activeTab === 'popular' ? 'border-primary text-ink dark:text-on-dark' : 'border-transparent text-muted hover:text-ink dark:hover:text-on-dark'
+                  }`}
               >
                 Popular Assets
               </button>
               <button
                 onClick={() => setActiveTab('new')}
-                className={`text-sm font-semibold pb-2 border-b-2 transition-colors ${
-                  activeTab === 'new' ? 'border-primary text-ink dark:text-on-dark' : 'border-transparent text-muted hover:text-ink dark:hover:text-on-dark'
-                }`}
+                className={`text-sm font-semibold pb-2 border-b-2 transition-colors ${activeTab === 'new' ? 'border-primary text-ink dark:text-on-dark' : 'border-transparent text-muted hover:text-ink dark:hover:text-on-dark'
+                  }`}
               >
                 New Listings
               </button>
               <button
                 onClick={() => setActiveTab('gainers')}
-                className={`text-sm font-semibold pb-2 border-b-2 transition-colors ${
-                  activeTab === 'gainers' ? 'border-primary text-ink dark:text-on-dark' : 'border-transparent text-muted hover:text-ink dark:hover:text-on-dark'
-                }`}
+                className={`text-sm font-semibold pb-2 border-b-2 transition-colors ${activeTab === 'gainers' ? 'border-primary text-ink dark:text-on-dark' : 'border-transparent text-muted hover:text-ink dark:hover:text-on-dark'
+                  }`}
               >
                 Top Gainers
               </button>
@@ -284,7 +277,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onTradeSelect, onSignUpSel
 
                   return (
                     <tr key={coin.symbol} className="border-b border-hairline-light/50 dark:border-hairline-dark/30 hover:bg-white dark:hover:bg-surface-elevated-dark/50 transition-colors duration-100 text-sm font-medium">
-                      
+
                       <td className="py-4 px-4">
                         <div className="flex items-center gap-3">
                           <CoinIcon symbol={coin.symbol} className="w-8 h-8 text-[12px]" />
@@ -334,8 +327,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ onTradeSelect, onSignUpSel
                       </td>
 
                       <td className="py-4 px-4 text-center">
-                        <button 
-                          onClick={() => onTradeSelect(coin.symbol, 'BUY')} 
+                        <button
+                          onClick={() => onTradeSelect(coin.symbol, 'BUY')}
                           className="px-4 py-1.5 rounded-full bg-primary text-on-primary hover:bg-primary-active active:scale-95 text-xs font-extrabold transition-all duration-100 shadow-sm"
                         >
                           Trade
@@ -354,7 +347,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onTradeSelect, onSignUpSel
 
       <section className="w-full bg-[#fafafa] dark:bg-canvas-dark border-t border-b border-hairline-light dark:border-hairline-dark py-16 text-left">
         <div className="max-w-[1280px] mx-auto px-6 grid grid-cols-1 md:grid-cols-3 gap-6">
-          
+
           <div className="p-6 bg-white dark:bg-surface-card-dark border border-hairline-light dark:border-hairline-dark rounded-lg flex items-start gap-4">
             <svg className="w-8 h-8 text-primary flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24">
               <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
@@ -403,14 +396,14 @@ export const Dashboard: React.FC<DashboardProps> = ({ onTradeSelect, onSignUpSel
                 {isAuthenticated ? 'Start Trading on ZyptoX' : 'Simulated Crypto Trading on ZyptoX'}
               </h2>
               <p className="text-xs text-muted">
-                {isAuthenticated 
-                  ? 'You are logged in. Head over to the trading terminal now.' 
+                {isAuthenticated
+                  ? 'You are logged in. Head over to the trading terminal now.'
                   : 'Register now and start practicing with a simulated balance.'
                 }
               </p>
             </div>
-            <Button 
-              variant="primary-pill" 
+            <Button
+              variant="primary-pill"
               onClick={isAuthenticated ? () => onTradeSelect('BTC', 'BUY') : onSignUpSelect}
             >
               {isAuthenticated ? 'Trade Now' : 'Register & Start'}

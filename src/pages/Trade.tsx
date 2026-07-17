@@ -14,7 +14,6 @@ interface TradeProps {
 const TradeSkeleton: React.FC = () => {
   return (
     <div className="max-w-[1280px] mx-auto py-6 px-4 flex flex-col lg:flex-row gap-6 font-sans text-left min-h-[600px]">
-      {/* Left Sidebar: Watchlist Skeleton */}
       <div className="w-full lg:w-72 flex-shrink-0 bg-white dark:bg-surface-card-dark border border-hairline-light dark:border-hairline-dark rounded-xl p-4 flex flex-col gap-4">
         <Skeleton className="h-5 w-24" />
         <Skeleton className="h-8 w-full" />
@@ -34,9 +33,7 @@ const TradeSkeleton: React.FC = () => {
         </div>
       </div>
 
-      {/* Center & Right Pane wrapper */}
       <div className="flex-1 flex flex-col lg:flex-row gap-6 min-w-0">
-        {/* Middle Pane: Chart Skeleton */}
         <div className="flex-1 flex flex-col gap-6">
           <div className="bg-white dark:bg-surface-card-dark border border-hairline-light dark:border-hairline-dark rounded-xl p-6 flex flex-col gap-4">
             <div className="flex justify-between items-center flex-wrap gap-2">
@@ -47,11 +44,9 @@ const TradeSkeleton: React.FC = () => {
                 <Skeleton className="h-6 w-10" />
               </div>
             </div>
-            {/* SVG Chart Skeleton */}
             <Skeleton className="h-[380px] w-full rounded-lg" />
           </div>
 
-          {/* Positions Table Skeleton */}
           <div className="bg-white dark:bg-surface-card-dark border border-hairline-light dark:border-hairline-dark rounded-xl p-6 flex flex-col gap-4">
             <Skeleton className="h-5 w-40" />
             <div className="flex flex-col gap-3">
@@ -70,7 +65,6 @@ const TradeSkeleton: React.FC = () => {
           </div>
         </div>
 
-        {/* Right Pane: Order Form Skeleton */}
         <div className="w-full lg:w-[360px] flex-shrink-0 bg-white dark:bg-surface-card-dark border border-hairline-light dark:border-hairline-dark rounded-xl p-6 flex flex-col gap-6">
           <div className="flex gap-1 bg-muted/10 p-0.5 rounded-lg">
             <Skeleton className="h-8 flex-1 rounded-md" />
@@ -119,7 +113,7 @@ export const Trade: React.FC<TradeProps> = ({ initialSymbol = 'BTC', initialActi
   const [hoverIdx, setHoverIdx] = useState<number | null>(null);
   const [timeframe, setTimeframe] = useState<'1H' | '4H' | '24H' | '1W'>('24H');
   const [watchlistSearch, setWatchlistSearch] = useState('');
-  
+
   const [submitting, setSubmitting] = useState(false);
   const [tradeStatus, setTradeStatus] = useState<{ type: 'SUCCESS' | 'ERROR'; message: string } | null>(null);
 
@@ -154,22 +148,22 @@ export const Trade: React.FC<TradeProps> = ({ initialSymbol = 'BTC', initialActi
     let sparkline = [...currentCoin.sparkline];
 
     if (timeframe === '1H') {
-      sparkline = Array.from({ length: 24 }, (_, i) => 
+      sparkline = Array.from({ length: 24 }, (_, i) =>
         currentCoin.price * (1 + Math.sin(i * 0.8) * 0.005 + (i * 0.0002))
       );
     } else if (timeframe === '4H') {
-      sparkline = Array.from({ length: 24 }, (_, i) => 
+      sparkline = Array.from({ length: 24 }, (_, i) =>
         currentCoin.price * (1 + Math.cos(i * 0.5) * 0.012 - (i * 0.0005))
       );
     } else if (timeframe === '1W') {
-      sparkline = Array.from({ length: 24 }, (_, i) => 
+      sparkline = Array.from({ length: 24 }, (_, i) =>
         currentCoin.price * (1 + Math.sin(i * 0.3) * 0.035 + Math.cos(i * 0.7) * 0.015)
       );
     }
 
     const pointsCount = 24;
     const dataPoints: { price: number; time: string; volume: number; isUp: boolean }[] = [];
-    
+
     const minP = Math.min(...sparkline);
     const maxP = Math.max(...sparkline);
     const rangeP = (maxP - minP) || 1;
@@ -182,11 +176,11 @@ export const Trade: React.FC<TradeProps> = ({ initialSymbol = 'BTC', initialActi
       const leftIdx = Math.floor(sparkIndexFloat);
       const rightIdx = Math.ceil(sparkIndexFloat);
       const fraction = sparkIndexFloat - leftIdx;
-      
+
       const leftVal = sparkline[leftIdx];
       const rightVal = sparkline[rightIdx];
       const interpolatedPrice = leftVal + (rightVal - leftVal) * fraction;
-      
+
       let timeLabel = '';
       if (timeframe === '1H') {
         const minsAgo = (23 - i) * 2.5;
@@ -205,11 +199,11 @@ export const Trade: React.FC<TradeProps> = ({ initialSymbol = 'BTC', initialActi
         const targetDate = new Date(now.getTime() - hoursAgo * 60 * 60 * 1000);
         timeLabel = targetDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
       }
-      
+
       const simVolume = Math.round((50 + Math.abs(Math.sin(i * 1.5)) * 180 + (i % 3 === 0 ? 80 : 0)) * 100) / 100;
       const prevPrice = i > 0 ? dataPoints[i - 1].price : sparkline[0];
       const itemIsUp = interpolatedPrice >= prevPrice;
-      
+
       dataPoints.push({
         price: Math.round(interpolatedPrice * 100) / 100,
         time: timeLabel,
@@ -240,7 +234,7 @@ export const Trade: React.FC<TradeProps> = ({ initialSymbol = 'BTC', initialActi
   }, [currentCoin, timeframe]);
 
   const filteredWatchlist = useMemo(() => {
-    return prices.filter(p => 
+    return prices.filter(p =>
       p.symbol.toLowerCase().includes(watchlistSearch.toLowerCase()) ||
       p.name.toLowerCase().includes(watchlistSearch.toLowerCase())
     );
@@ -315,11 +309,11 @@ export const Trade: React.FC<TradeProps> = ({ initialSymbol = 'BTC', initialActi
     const viewX = (x / rect.width) * 1000;
     const relativeX = viewX - 20;
     const chartWidth = 920;
-    
+
     let pct = relativeX / chartWidth;
     if (pct < 0) pct = 0;
     if (pct > 1) pct = 1;
-    
+
     const index = Math.round(pct * (chartData.dataPoints.length - 1));
     setHoverIdx(index);
   };
@@ -345,9 +339,9 @@ export const Trade: React.FC<TradeProps> = ({ initialSymbol = 'BTC', initialActi
     }
 
     return (
-      <div 
-        style={{ 
-          left: `${leftPct}%`, 
+      <div
+        style={{
+          left: `${leftPct}%`,
           top: `${topPct}%`,
           transform: `translate(${translateX}, ${isTooltipTooHigh ? '0%' : '-100%'})`,
           marginTop: isTooltipTooHigh ? '12px' : '-12px',
@@ -373,7 +367,7 @@ export const Trade: React.FC<TradeProps> = ({ initialSymbol = 'BTC', initialActi
 
   return (
     <div className="w-full py-6 px-4 lg:px-8 bg-white dark:bg-canvas-dark text-ink dark:text-on-dark flex flex-col gap-6">
-      
+
       <div className="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-hairline-light dark:border-hairline-dark">
         <div className="flex items-center gap-4 flex-wrap">
           <div className="relative lg:hidden">
@@ -387,7 +381,7 @@ export const Trade: React.FC<TradeProps> = ({ initialSymbol = 'BTC', initialActi
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M19 9l-7 7-7-7" />
               </svg>
             </button>
-            
+
             {dropdownOpen && (
               <>
                 <div className="fixed inset-0 z-10" onClick={() => setDropdownOpen(false)} />
@@ -402,9 +396,8 @@ export const Trade: React.FC<TradeProps> = ({ initialSymbol = 'BTC', initialActi
                         setAmount('');
                         setDropdownOpen(false);
                       }}
-                      className={`w-full flex items-center justify-between px-4 py-2.5 text-left text-sm font-sans hover:bg-surface-strong-light dark:hover:bg-surface-card-dark ${
-                        selectedSymbol === p.symbol ? 'bg-primary/10 text-primary-active dark:text-primary font-bold' : ''
-                      }`}
+                      className={`w-full flex items-center justify-between px-4 py-2.5 text-left text-sm font-sans hover:bg-surface-strong-light dark:hover:bg-surface-card-dark ${selectedSymbol === p.symbol ? 'bg-primary/10 text-primary-active dark:text-primary font-bold' : ''
+                        }`}
                     >
                       <span>{p.symbol} / USD ({p.name})</span>
                       <span className="font-mono text-xs text-muted">${p.price.toLocaleString()}</span>
@@ -420,7 +413,7 @@ export const Trade: React.FC<TradeProps> = ({ initialSymbol = 'BTC', initialActi
             <span className="text-xl font-bold">{selectedSymbol} / USD</span>
             <span className="text-xs text-muted">({currentCoin.name})</span>
           </div>
-          
+
           <div className="flex items-center gap-6">
             <div className="flex flex-col font-mono">
               <span className="text-xl font-bold text-ink dark:text-on-dark">${coinPrice.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
@@ -428,7 +421,7 @@ export const Trade: React.FC<TradeProps> = ({ initialSymbol = 'BTC', initialActi
                 {isUp ? '+' : ''}{change24h}% {isUp ? '▲' : '▼'}
               </span>
             </div>
-            
+
             <div className="hidden sm:flex items-center gap-6 border-l border-hairline-light dark:border-hairline-dark pl-6">
               <div className="flex flex-col font-mono">
                 <span className="text-[9px] text-muted font-semibold uppercase">24h High</span>
@@ -467,7 +460,7 @@ export const Trade: React.FC<TradeProps> = ({ initialSymbol = 'BTC', initialActi
       <div className="flex flex-col lg:flex-row gap-6 w-full items-stretch">
         <div className="hidden lg:flex flex-col w-64 bg-[#fafafa] dark:bg-surface-card-dark border border-hairline-light dark:border-hairline-dark rounded-xl p-4 gap-3 flex-shrink-0">
           <span className="text-xs font-bold text-ink dark:text-on-dark uppercase tracking-wider">Markets Watchlist</span>
-          
+
           <input
             type="text"
             placeholder="Search coin..."
@@ -489,9 +482,8 @@ export const Trade: React.FC<TradeProps> = ({ initialSymbol = 'BTC', initialActi
                     setAmount('');
                     setHoverIdx(null);
                   }}
-                  className={`w-full flex items-center justify-between p-2 rounded hover:bg-surface-strong-light dark:hover:bg-surface-elevated-dark transition-colors duration-75 text-left ${
-                    selectedSymbol === p.symbol ? 'bg-primary/10 border-l-2 border-primary-active' : ''
-                  }`}
+                  className={`w-full flex items-center justify-between p-2 rounded hover:bg-surface-strong-light dark:hover:bg-surface-elevated-dark transition-colors duration-75 text-left ${selectedSymbol === p.symbol ? 'bg-primary/10 border-l-2 border-primary-active' : ''
+                    }`}
                 >
                   <div className="flex flex-col">
                     <span className="text-xs font-bold text-ink dark:text-on-dark">{p.symbol}/USD</span>
@@ -513,7 +505,7 @@ export const Trade: React.FC<TradeProps> = ({ initialSymbol = 'BTC', initialActi
           <div className="p-6 bg-[#fafafa] dark:bg-surface-card-dark border border-hairline-light dark:border-hairline-dark rounded-xl shadow-sm flex flex-col gap-4">
             <div className="flex justify-between items-center flex-wrap gap-2">
               <span className="text-sm font-bold">Price Chart</span>
-              
+
               <div className="flex items-center gap-1 bg-white dark:bg-canvas-dark rounded border border-hairline-light dark:border-hairline-dark p-0.5 select-none">
                 {(['1H', '4H', '24H', '1W'] as const).map((tf) => (
                   <button
@@ -523,11 +515,10 @@ export const Trade: React.FC<TradeProps> = ({ initialSymbol = 'BTC', initialActi
                       setTimeframe(tf);
                       setHoverIdx(null);
                     }}
-                    className={`px-3 py-1 rounded text-[10px] font-bold font-mono transition-colors cursor-pointer ${
-                      timeframe === tf
-                        ? 'bg-primary/20 text-primary-active dark:text-primary'
-                        : 'text-muted hover:text-ink dark:hover:text-on-dark'
-                    }`}
+                    className={`px-3 py-1 rounded text-[10px] font-bold font-mono transition-colors cursor-pointer ${timeframe === tf
+                      ? 'bg-primary/20 text-primary-active dark:text-primary'
+                      : 'text-muted hover:text-ink dark:hover:text-on-dark'
+                      }`}
                   >
                     {tf}
                   </button>
@@ -536,8 +527,8 @@ export const Trade: React.FC<TradeProps> = ({ initialSymbol = 'BTC', initialActi
             </div>
 
             <div className="relative h-[420px] bg-white dark:bg-canvas-dark/60 rounded-lg border border-hairline-light dark:border-hairline-dark overflow-hidden flex flex-col pt-4">
-              <svg 
-                className="w-full h-full cursor-crosshair" 
+              <svg
+                className="w-full h-full cursor-crosshair"
                 viewBox="0 0 1000 380"
                 onMouseMove={handleMouseMove}
                 onMouseLeave={() => setHoverIdx(null)}
@@ -551,7 +542,7 @@ export const Trade: React.FC<TradeProps> = ({ initialSymbol = 'BTC', initialActi
                     <feDropShadow dx="0" dy="2" stdDeviation="4" floodColor={isUp ? '#0ecb81' : '#f6465d'} floodOpacity="0.3" />
                   </filter>
                 </defs>
-                
+
                 <line x1="20" y1="30" x2="940" y2="30" stroke="currentColor" strokeOpacity="0.05" strokeDasharray="2,2" />
                 <line x1="20" y1="105" x2="940" y2="105" stroke="currentColor" strokeOpacity="0.05" strokeDasharray="2,2" />
                 <line x1="20" y1="180" x2="940" y2="180" stroke="currentColor" strokeOpacity="0.05" strokeDasharray="2,2" />
@@ -559,8 +550,8 @@ export const Trade: React.FC<TradeProps> = ({ initialSymbol = 'BTC', initialActi
                 <line x1="20" y1="330" x2="940" y2="330" stroke="currentColor" strokeOpacity="0.08" />
 
                 <text x="946" y="34" className="fill-muted text-[9px] font-mono select-none">${chartData.maxP.toLocaleString('en-US', { maximumFractionDigits: 0 })}</text>
-                <text x="946" y="109" className="fill-muted text-[9px] font-mono select-none">${(chartData.minP + chartData.rangeP * (2/3)).toLocaleString('en-US', { maximumFractionDigits: 0 })}</text>
-                <text x="946" y="184" className="fill-muted text-[9px] font-mono select-none">${(chartData.minP + chartData.rangeP * (1/3)).toLocaleString('en-US', { maximumFractionDigits: 0 })}</text>
+                <text x="946" y="109" className="fill-muted text-[9px] font-mono select-none">${(chartData.minP + chartData.rangeP * (2 / 3)).toLocaleString('en-US', { maximumFractionDigits: 0 })}</text>
+                <text x="946" y="184" className="fill-muted text-[9px] font-mono select-none">${(chartData.minP + chartData.rangeP * (1 / 3)).toLocaleString('en-US', { maximumFractionDigits: 0 })}</text>
                 <text x="946" y="259" className="fill-muted text-[9px] font-mono select-none">${chartData.minP.toLocaleString('en-US', { maximumFractionDigits: 0 })}</text>
 
                 <text x="20" y="360" className="fill-muted text-[8px] font-mono select-none" textAnchor="start">{chartData.dataPoints[0].time}</text>
@@ -603,31 +594,31 @@ export const Trade: React.FC<TradeProps> = ({ initialSymbol = 'BTC', initialActi
 
                 {hoverIdx !== null && (
                   <>
-                    <line 
-                      x1={20 + (hoverIdx / (chartData.dataPoints.length - 1)) * 920} 
-                      y1={20} 
-                      x2={20 + (hoverIdx / (chartData.dataPoints.length - 1)) * 920} 
-                      y2={330} 
-                      stroke="currentColor" 
-                      strokeOpacity="0.25" 
-                      strokeDasharray="3,3" 
+                    <line
+                      x1={20 + (hoverIdx / (chartData.dataPoints.length - 1)) * 920}
+                      y1={20}
+                      x2={20 + (hoverIdx / (chartData.dataPoints.length - 1)) * 920}
+                      y2={330}
+                      stroke="currentColor"
+                      strokeOpacity="0.25"
+                      strokeDasharray="3,3"
                     />
-                    <line 
-                      x1={20} 
-                      y1={250 - ((chartData.dataPoints[hoverIdx].price - chartData.minP) / chartData.rangeP) * 220} 
-                      x2={940} 
-                      y2={250 - ((chartData.dataPoints[hoverIdx].price - chartData.minP) / chartData.rangeP) * 220} 
-                      stroke="currentColor" 
-                      strokeOpacity="0.25" 
-                      strokeDasharray="3,3" 
+                    <line
+                      x1={20}
+                      y1={250 - ((chartData.dataPoints[hoverIdx].price - chartData.minP) / chartData.rangeP) * 220}
+                      x2={940}
+                      y2={250 - ((chartData.dataPoints[hoverIdx].price - chartData.minP) / chartData.rangeP) * 220}
+                      stroke="currentColor"
+                      strokeOpacity="0.25"
+                      strokeDasharray="3,3"
                     />
-                    <circle 
-                      cx={20 + (hoverIdx / (chartData.dataPoints.length - 1)) * 920} 
-                      cy={250 - ((chartData.dataPoints[hoverIdx].price - chartData.minP) / chartData.rangeP) * 220} 
-                      r="4" 
-                      className={isUp ? 'fill-trading-up stroke-white dark:stroke-canvas-dark stroke-2' : 'fill-trading-down stroke-white dark:stroke-canvas-dark stroke-2'} 
+                    <circle
+                      cx={20 + (hoverIdx / (chartData.dataPoints.length - 1)) * 920}
+                      cy={250 - ((chartData.dataPoints[hoverIdx].price - chartData.minP) / chartData.rangeP) * 220}
+                      r="4"
+                      className={isUp ? 'fill-trading-up stroke-white dark:stroke-canvas-dark stroke-2' : 'fill-trading-down stroke-white dark:stroke-canvas-dark stroke-2'}
                     />
-                    
+
                     <g transform={`translate(944, ${250 - ((chartData.dataPoints[hoverIdx].price - chartData.minP) / chartData.rangeP) * 220 - 8})`}>
                       <rect width="44" height="16" rx="3" className="fill-ink dark:fill-on-dark opacity-90" />
                       <text x="22" y="11" textAnchor="middle" className="fill-white dark:fill-canvas-dark text-[9px] font-mono font-semibold select-none">
@@ -655,7 +646,7 @@ export const Trade: React.FC<TradeProps> = ({ initialSymbol = 'BTC', initialActi
 
           <div className="p-6 bg-[#fafafa] dark:bg-surface-card-dark border border-hairline-light dark:border-hairline-dark rounded-xl shadow-sm flex flex-col gap-4">
             <span className="text-sm font-bold text-ink dark:text-on-dark px-2">Positions & Wallet Assets</span>
-            
+
             <div className="overflow-x-auto w-full px-2">
               <table className="w-full text-left text-xs border-collapse">
                 <thead>
@@ -727,7 +718,7 @@ export const Trade: React.FC<TradeProps> = ({ initialSymbol = 'BTC', initialActi
 
         <div className="w-full lg:w-80 flex-shrink-0 flex flex-col gap-6">
           <div className="p-6 bg-[#fafafa] dark:bg-surface-card-dark border border-hairline-light dark:border-hairline-dark rounded-xl shadow-sm flex flex-col gap-6 w-full">
-            
+
             <div className="grid grid-cols-2 p-1 bg-white dark:bg-canvas-dark rounded border border-hairline-light dark:border-hairline-dark select-none">
               <button
                 type="button"
@@ -735,11 +726,10 @@ export const Trade: React.FC<TradeProps> = ({ initialSymbol = 'BTC', initialActi
                   setTradeAction('BUY');
                   setTradeStatus(null);
                 }}
-                className={`py-2 rounded font-bold text-xs transition-colors ${
-                  tradeAction === 'BUY'
-                    ? 'bg-trading-up text-on-dark font-semibold'
-                    : 'text-muted hover:text-ink dark:hover:text-on-dark hover:bg-surface-strong-light dark:hover:bg-surface-elevated-dark'
-                }`}
+                className={`py-2 rounded font-bold text-xs transition-colors ${tradeAction === 'BUY'
+                  ? 'bg-trading-up text-on-dark font-semibold'
+                  : 'text-muted hover:text-ink dark:hover:text-on-dark hover:bg-surface-strong-light dark:hover:bg-surface-elevated-dark'
+                  }`}
               >
                 BUY
               </button>
@@ -749,18 +739,17 @@ export const Trade: React.FC<TradeProps> = ({ initialSymbol = 'BTC', initialActi
                   setTradeAction('SELL');
                   setTradeStatus(null);
                 }}
-                className={`py-2 rounded font-bold text-xs transition-colors ${
-                  tradeAction === 'SELL'
-                    ? 'bg-trading-down text-on-dark font-semibold'
-                    : 'text-muted hover:text-ink dark:hover:text-on-dark hover:bg-surface-strong-light dark:hover:bg-surface-elevated-dark'
-                }`}
+                className={`py-2 rounded font-bold text-xs transition-colors ${tradeAction === 'SELL'
+                  ? 'bg-trading-down text-on-dark font-semibold'
+                  : 'text-muted hover:text-ink dark:hover:text-on-dark hover:bg-surface-strong-light dark:hover:bg-surface-elevated-dark'
+                  }`}
               >
                 SELL
               </button>
             </div>
 
             <form onSubmit={handleExecuteOrder} className="flex flex-col gap-5">
-              
+
               <div className="flex flex-col gap-2">
                 <Input
                   label={`Trade Amount (${selectedSymbol})`}
@@ -803,11 +792,10 @@ export const Trade: React.FC<TradeProps> = ({ initialSymbol = 'BTC', initialActi
               </div>
 
               {tradeStatus && (
-                <div className={`p-3 rounded text-xs border font-medium ${
-                  tradeStatus.type === 'SUCCESS'
-                    ? 'bg-trading-up/10 text-trading-up border-trading-up/20'
-                    : 'bg-trading-down/10 text-trading-down border-trading-down/20'
-                }`}>
+                <div className={`p-3 rounded text-xs border font-medium ${tradeStatus.type === 'SUCCESS'
+                  ? 'bg-trading-up/10 text-trading-up border-trading-up/20'
+                  : 'bg-trading-down/10 text-trading-down border-trading-down/20'
+                  }`}>
                   {tradeStatus.message}
                 </div>
               )}

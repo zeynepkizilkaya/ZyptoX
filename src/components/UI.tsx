@@ -1,9 +1,5 @@
 import React from 'react';
 
-// ==========================================
-// Button Component
-// ==========================================
-
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: 'primary' | 'primary-pill' | 'secondary' | 'trading-up' | 'trading-down' | 'subscribe' | 'text-link';
   children: React.ReactNode;
@@ -31,10 +27,6 @@ export const Button: React.FC<ButtonProps> = ({ variant = 'primary', className =
     </button>
   );
 };
-
-// ==========================================
-// Input & Search Input Components
-// ==========================================
 
 interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
   label?: string;
@@ -106,10 +98,6 @@ export const SearchInput: React.FC<SearchInputProps> = ({
     </div>
   );
 };
-
-// ==========================================
-// Loading & Skeleton Components
-// ==========================================
 
 interface SpinnerProps {
   size?: 'sm' | 'md' | 'lg';
