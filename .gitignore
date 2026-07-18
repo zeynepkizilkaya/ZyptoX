@@ -35,3 +35,12 @@ zyptox-frontend/dist/
 # Backend builds
 zyptox-backend/target/
 zyptox-backend/.mvn/
+
+# Local submission files & report screenshots
+SOLUTION.md
+solution.md
+*.png
+*.jpg
+*.jpeg
+screenshot/
+screenshots/
