@@ -10,6 +10,7 @@ import com.zyptox.backend.ai.prompt.PromptBuilder;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import com.zyptox.backend.ai.security.InputGuard;
+import com.zyptox.backend.ai.service.ConversationMemoryService;
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -23,12 +24,15 @@ public class AIChatService {
     private final GeminiClient geminiClient;
     private final ResponseParser responseParser;
     private final InputGuard inputGuard;
+    private final ConversationMemoryService conversationMemoryService;
+    
 
     public AIChatService(
             ContextBuilder contextBuilder,
             PromptBuilder promptBuilder,
             GeminiClient geminiClient,
             InputGuard inputGuard,
+            ConversationMemoryService conversationMemoryService,
             ResponseParser responseParser) {
 
         this.contextBuilder = contextBuilder;
@@ -36,6 +40,7 @@ public class AIChatService {
         this.geminiClient = geminiClient;
         this.responseParser = responseParser;
         this.inputGuard = inputGuard;
+        this.conversationMemoryService = conversationMemoryService;
     }
 
     public ChatResponse chat(Long userId, String message) {
@@ -45,11 +50,13 @@ public class AIChatService {
     );
 }
         UserContext context = null;
+        conversationMemoryService.addUserMessage(userId, message);
         try {
             context = contextBuilder.buildContext(userId);
             String prompt = promptBuilder.buildPrompt(context, message);
             GeminiResponse response = geminiClient.generateResponse(prompt);
             String answer = responseParser.parse(response);
+            conversationMemoryService.addAssistantMessage(userId, answer);
             return new ChatResponse(answer);
         } catch (Exception e) {
             log.error("Gemini AI API execution failed. Returning fallback mock response.", e);

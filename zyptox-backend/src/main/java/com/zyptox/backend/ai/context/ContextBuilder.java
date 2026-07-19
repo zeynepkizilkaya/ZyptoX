@@ -1,6 +1,7 @@
 package com.zyptox.backend.ai.context;
 
 import com.zyptox.backend.ai.dto.UserContext;
+import com.zyptox.backend.ai.service.ConversationMemoryService;
 import com.zyptox.backend.dto.response.MarketPriceResponse;
 import com.zyptox.backend.entity.Transaction;
 import com.zyptox.backend.entity.User;
@@ -23,6 +24,7 @@ public class ContextBuilder {
     private final WalletRepository walletRepository;
     private final TransactionRepository transactionRepository;
     private final PriceService priceService;
+    private final ConversationMemoryService conversationMemoryService;
 
     public UserContext buildContext(Long userId) {
         UserContext context = new UserContext();
@@ -73,8 +75,9 @@ public class ContextBuilder {
         }
         context.setRecentTrades(txBuilder.toString());
 
-        // Conversation history is not stored in DB, keeping empty or default
-        context.setConversationHistory(List.of());
+        context.setConversationHistory(
+        conversationMemoryService.getConversation(userId)
+);
 
         return context;
     }
