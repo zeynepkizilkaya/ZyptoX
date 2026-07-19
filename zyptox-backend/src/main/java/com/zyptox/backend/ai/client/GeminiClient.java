@@ -24,18 +24,41 @@ public class GeminiClient {
         GeminiRequest request = buildRequest(prompt);
 
         String url =
-                "https://generativelanguage.googleapis.com/v1beta/models/"
+                "https://generativelanguage.googleapis.com/v1/models/"
                         + geminiConfig.getModel()
                         + ":generateContent";
-        System.out.println(url);
+        String apiKey = geminiConfig.getApiKey();
+        System.out.println("--- Gemini AI Diagnostic Log ---");
+        System.out.println("Using Model: " + geminiConfig.getModel());
+        System.out.println("API Key Loaded Length: " + (apiKey != null ? apiKey.length() : 0));
+        System.out.println("API Key Loaded Prefix: " + (apiKey != null && apiKey.length() > 10 ? apiKey.substring(0, 10) : "N/A"));
+        System.out.println("Target URL: " + url);
+        System.out.println("--------------------------------");
 
-        return restClient.post()
-                .uri(url)
-                .header("x-goog-api-key", geminiConfig.getApiKey())
-                .contentType(MediaType.APPLICATION_JSON)
-                .body(request)
-                .retrieve()
-                .body(GeminiResponse.class);
+        try {
+            return restClient.post()
+                    .uri(url)
+                    .header("x-goog-api-key", geminiConfig.getApiKey())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .body(request)
+                    .retrieve()
+                    .body(GeminiResponse.class);
+        } catch (Exception e) {
+            System.out.println("--- ERROR: Listing Authorized Models for Diagnostic ---");
+            try {
+                String listUrl = "https://generativelanguage.googleapis.com/v1/models";
+                String responseBody = restClient.get()
+                        .uri(listUrl)
+                        .header("x-goog-api-key", geminiConfig.getApiKey())
+                        .retrieve()
+                        .body(String.class);
+                System.out.println("Available Models: " + responseBody);
+            } catch (Exception listEx) {
+                System.out.println("Failed to list models. Error: " + listEx.getMessage());
+            }
+            System.out.println("-------------------------------------------------------");
+            throw e;
+        }
     }
 
     private GeminiRequest buildRequest(String prompt) {

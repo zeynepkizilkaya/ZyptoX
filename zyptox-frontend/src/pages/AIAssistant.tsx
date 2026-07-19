@@ -21,13 +21,23 @@ export const AIAssistant: React.FC = () => {
       ? `### ZyptoX Yapay Zeka Finansal Asistanı\n\nMerhaba! Ben sizin ZyptoX yapay zeka finansal danışmanınızım. Benden portföyünüzü analiz etmemi, son işlemlerinizi incelememi veya herhangi bir büyük kripto varlığın teknik görünümünü kontrol etmemi isteyebilirsiniz. Sorunuzu doğrudan yazmaktan veya aşağıdaki hızlı erişim butonlarını kullanmaktan çekinmeyin.`
       : `### ZyptoX AI Financial Assistant\n\nHello! I am your ZyptoX AI financial advisor. You can ask me to analyze your portfolio, review your recent transactions, or check the technical outlook for any major crypto assets. Feel free to type your question directly or use the quick access buttons below.`;
 
-    setMessages([
-      {
-        sender: 'ai',
-        text: welcomeText,
-        timestamp: new Date(),
-      },
-    ]);
+    setMessages(prev => {
+      if (prev.length === 0) {
+        return [
+          {
+            sender: 'ai',
+            text: welcomeText,
+            timestamp: new Date(),
+          },
+        ];
+      }
+      return prev.map((msg, idx) => {
+        if (idx === 0 && msg.sender === 'ai') {
+          return { ...msg, text: welcomeText };
+        }
+        return msg;
+      });
+    });
   }, [language]);
 
   const scrollToBottom = () => {

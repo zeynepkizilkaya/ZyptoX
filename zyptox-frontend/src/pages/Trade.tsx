@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useMarket } from '../context/MarketContext';
 import { useAuth } from '../context/AuthContext';
 import { useLanguage } from '../context/LanguageContext';
@@ -119,14 +119,22 @@ export const Trade: React.FC<TradeProps> = ({ initialSymbol = 'BTC', initialActi
   const [submitting, setSubmitting] = useState(false);
   const [tradeStatus, setTradeStatus] = useState<{ type: 'SUCCESS' | 'ERROR'; message: string } | null>(null);
 
+  const prevProps = useRef({ initialSymbol, initialAction });
+
   useEffect(() => {
-    if (initialSymbol) {
-      setSelectedSymbol(initialSymbol);
-      setTradeStatus(null);
-      setAmount('');
-    }
-    if (initialAction) {
-      setTradeAction(initialAction);
+    const symbolChanged = prevProps.current.initialSymbol !== initialSymbol;
+    const actionChanged = prevProps.current.initialAction !== initialAction;
+
+    if (symbolChanged || actionChanged) {
+      if (initialSymbol) {
+        setSelectedSymbol(initialSymbol);
+        setTradeStatus(null);
+        setAmount('');
+      }
+      if (initialAction) {
+        setTradeAction(initialAction);
+      }
+      prevProps.current = { initialSymbol, initialAction };
     }
   }, [initialSymbol, initialAction]);
 

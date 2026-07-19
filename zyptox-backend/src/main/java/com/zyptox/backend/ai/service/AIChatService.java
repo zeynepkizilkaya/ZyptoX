@@ -35,17 +35,22 @@ public class AIChatService {
     }
 
     public ChatResponse chat(Long userId, String message) {
-        UserContext context = contextBuilder.buildContext(userId);
-
-        String prompt = promptBuilder.buildPrompt(context, message);
-
+        UserContext context = null;
         try {
+            context = contextBuilder.buildContext(userId);
+            String prompt = promptBuilder.buildPrompt(context, message);
             GeminiResponse response = geminiClient.generateResponse(prompt);
             String answer = responseParser.parse(response);
             return new ChatResponse(answer);
         } catch (Exception e) {
             log.error("Gemini AI API execution failed. Returning fallback mock response.", e);
             // Fallback response if Gemini fails or is rate limited
+            if (context == null) {
+                context = new UserContext();
+                context.setPortfolio("USD Cash Balance: $0.00\nNo cryptocurrency holdings.");
+                context.setRecentTrades("No transaction history.");
+                context.setMarketSummary("");
+            }
             return new ChatResponse(getFallbackResponse(message, context));
         }
     }
@@ -67,10 +72,66 @@ public class AIChatService {
             }
         }
 
-        // 2. Portfolio analysis responses
-        if (query.contains("portfolio") || query.contains("portföy") || query.contains("varlık") || query.contains("bakiye") || query.contains("analiz") || query.contains("history") || query.contains("geçmiş")) {
-            String rawPortfolio = context.getPortfolio();
+        // 2. Price lookup responses
+        String targetSymbol = null;
+        if (query.contains("btc") || query.contains("bitcoin")) targetSymbol = "BTC";
+        else if (query.contains("eth") || query.contains("ethereum")) targetSymbol = "ETH";
+        else if (query.contains("sol") || query.contains("solana")) targetSymbol = "SOL";
+        else if (query.contains("bnb")) targetSymbol = "BNB";
+        else if (query.contains("doge")) targetSymbol = "DOGE";
+        
+        if (targetSymbol != null) {
+            String marketSummary = context.getMarketSummary();
+            Pattern p = Pattern.compile("- " + targetSymbol + " \\(([^\\)]+)\\): \\$([^ ]+) \\(([^ ]+) 24h change\\)");
+            Matcher m = p.matcher(marketSummary);
+            if (m.find()) {
+                String name = m.group(1);
+                String price = m.group(2);
+                String change = m.group(3);
+                if (isTurkish) {
+                    return String.format("### 📈 %s (%s) Fiyat Bilgisi\n\n- **Güncel Fiyat**: $%s\n- **24 Saatlik Değişim**: %s\n\nAl-Sat sekmesini kullanarak bu fiyattan emir gerçekleştirebilirsiniz.", targetSymbol, name, price, change);
+                } else {
+                    return String.format("### 📈 %s (%s) Price Info\n\n- **Current Price**: $%s\n- **24h Change**: %s\n\nYou can place buy or sell orders at this rate on the Trade tab.", targetSymbol, name, price, change);
+                }
+            }
+        }
+
+        // 3. Transaction history responses
+        if (query.contains("history") || query.contains("geçmiş") || query.contains("işlem") || query.contains("transaction")) {
             String rawTxs = context.getRecentTrades();
+            
+            if (isTurkish) {
+                StringBuilder sb = new StringBuilder();
+                sb.append("### 📜 Son İşlem Geçmişiniz\n\n");
+                sb.append("Hesabınız üzerinden gerçekleştirilen son Al-Sat işlemleri şu şekildedir:\n\n");
+                if (rawTxs.contains("No transaction history") || rawTxs.trim().isEmpty()) {
+                    sb.append("- Henüz yapılmış bir işleminiz bulunmuyor.\n");
+                } else {
+                    String[] txLines = rawTxs.split("\n");
+                    for (int i = 0; i < Math.min(txLines.length, 5); i++) {
+                        sb.append(txLines[i]).append("\n");
+                    }
+                }
+                return sb.toString();
+            } else {
+                StringBuilder sb = new StringBuilder();
+                sb.append("### 📜 Recent Transaction History\n\n");
+                sb.append("Here are the latest buy and sell transactions executed on your account:\n\n");
+                if (rawTxs.contains("No transaction history") || rawTxs.trim().isEmpty()) {
+                    sb.append("- No transactions executed yet.\n");
+                } else {
+                    String[] txLines = rawTxs.split("\n");
+                    for (int i = 0; i < Math.min(txLines.length, 5); i++) {
+                        sb.append(txLines[i]).append("\n");
+                    }
+                }
+                return sb.toString();
+            }
+        }
+
+        // 4. Portfolio analysis responses
+        if (query.contains("portfolio") || query.contains("portföy") || query.contains("varlık") || query.contains("bakiye") || query.contains("analiz")) {
+            String rawPortfolio = context.getPortfolio();
             
             if (isTurkish) {
                 StringBuilder sb = new StringBuilder();
@@ -99,16 +160,6 @@ public class AIChatService {
                 if (!hasCrypto) {
                     sb.append("- Cüzdanınızda henüz kripto varlık bulunmuyor.\n");
                 }
-                
-                sb.append("\n**Son İşlemler**:\n");
-                if (rawTxs.contains("No transaction history")) {
-                    sb.append("- Henüz yapılmış bir işleminiz bulunmuyor.\n");
-                } else {
-                    String[] txLines = rawTxs.split("\n");
-                    for (int i = 0; i < Math.min(txLines.length, 5); i++) {
-                        sb.append(txLines[i]).append("\n");
-                    }
-                }
                 return sb.toString();
             } else {
                 StringBuilder sb = new StringBuilder();
@@ -136,41 +187,7 @@ public class AIChatService {
                 if (!hasCrypto) {
                     sb.append("- No cryptocurrency holdings found.\n");
                 }
-                
-                sb.append("\n**Recent Transactions**:\n");
-                if (rawTxs.contains("No transaction history")) {
-                    sb.append("- No transactions executed yet.\n");
-                } else {
-                    String[] txLines = rawTxs.split("\n");
-                    for (int i = 0; i < Math.min(txLines.length, 5); i++) {
-                        sb.append(txLines[i]).append("\n");
-                    }
-                }
                 return sb.toString();
-            }
-        }
-
-        // 3. Price lookup responses
-        String targetSymbol = null;
-        if (query.contains("btc") || query.contains("bitcoin")) targetSymbol = "BTC";
-        else if (query.contains("eth") || query.contains("ethereum")) targetSymbol = "ETH";
-        else if (query.contains("sol") || query.contains("solana")) targetSymbol = "SOL";
-        else if (query.contains("bnb")) targetSymbol = "BNB";
-        else if (query.contains("doge")) targetSymbol = "DOGE";
-        
-        if (targetSymbol != null) {
-            String marketSummary = context.getMarketSummary();
-            Pattern p = Pattern.compile("- " + targetSymbol + " \\(([^\\)]+)\\): \\$([^ ]+) \\(([^ ]+) 24h change\\)");
-            Matcher m = p.matcher(marketSummary);
-            if (m.find()) {
-                String name = m.group(1);
-                String price = m.group(2);
-                String change = m.group(3);
-                if (isTurkish) {
-                    return String.format("### 📈 %s (%s) Fiyat Bilgisi\n\n- **Güncel Fiyat**: $%s\n- **24 Saatlik Değişim**: %s\n\nAl-Sat sekmesini kullanarak bu fiyattan emir gerçekleştirebilirsiniz.", targetSymbol, name, price, change);
-                } else {
-                    return String.format("### 📈 %s (%s) Price Info\n\n- **Current Price**: $%s\n- **24h Change**: %s\n\nYou can place buy or sell orders at this rate on the Trade tab.", targetSymbol, name, price, change);
-                }
             }
         }
 
