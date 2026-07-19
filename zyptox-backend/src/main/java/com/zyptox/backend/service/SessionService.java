@@ -24,17 +24,27 @@ public class SessionService {
     private static final Duration SESSION_TTL = Duration.ofMinutes(30);
 
     public String createSession(UserSession session) {
-        String token = UUID.randomUUID().toString();
-        String key = SESSION_KEY_PREFIX + token;
-        try {
-            String json = objectMapper.writeValueAsString(session);
-            redisTemplate.opsForValue().set(key, json, SESSION_TTL);
-            return token;
-        } catch (JsonProcessingException e) {
-            log.error("Failed to serialize session", e);
-            throw new RuntimeException("Session creation failed", e);
-        }
+    String token = UUID.randomUUID().toString();
+    String key = SESSION_KEY_PREFIX + token;
+
+    System.out.println("=== CREATE SESSION ===");
+    System.out.println("Key: " + key);
+
+    try {
+        String json = objectMapper.writeValueAsString(session);
+
+        System.out.println("JSON: " + json);
+
+        redisTemplate.opsForValue().set(key, json, SESSION_TTL);
+
+        System.out.println("Session saved successfully!");
+
+        return token;
+    } catch (JsonProcessingException e) {
+        log.error("Failed to serialize session", e);
+        throw new RuntimeException("Session creation failed", e);
     }
+}
 
     public Optional<UserSession> getSession(String token) {
         String key = SESSION_KEY_PREFIX + token;

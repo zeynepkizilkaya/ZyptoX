@@ -28,8 +28,13 @@ public class SessionAuthFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
 
+        System.out.println("URI: " + request.getRequestURI());
+
         String authHeader = request.getHeader("Authorization");
+        System.out.println("Authorization: " + authHeader);
+
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            System.out.println("No bearer token");
             filterChain.doFilter(request, response);
             return;
         }
@@ -37,13 +42,14 @@ public class SessionAuthFilter extends OncePerRequestFilter {
         String token = authHeader.substring(7);
         Optional<UserSession> sessionOpt = sessionService.getSession(token);
 
+        System.out.println("Session found: " + sessionOpt.isPresent());
+
         if (sessionOpt.isPresent()) {
             UserSession session = sessionOpt.get();
             UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
                     session,
                     null,
-                    List.of(new SimpleGrantedAuthority("ROLE_USER"))
-            );
+                    List.of(new SimpleGrantedAuthority("ROLE_USER")));
             authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
             SecurityContextHolder.getContext().setAuthentication(authentication);
         }
