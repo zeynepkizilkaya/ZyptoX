@@ -9,6 +9,7 @@ import com.zyptox.backend.ai.parser.ResponseParser;
 import com.zyptox.backend.ai.prompt.PromptBuilder;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import com.zyptox.backend.ai.security.InputGuard;
 
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -21,20 +22,28 @@ public class AIChatService {
     private final PromptBuilder promptBuilder;
     private final GeminiClient geminiClient;
     private final ResponseParser responseParser;
+    private final InputGuard inputGuard;
 
     public AIChatService(
             ContextBuilder contextBuilder,
             PromptBuilder promptBuilder,
             GeminiClient geminiClient,
+            InputGuard inputGuard,
             ResponseParser responseParser) {
 
         this.contextBuilder = contextBuilder;
         this.promptBuilder = promptBuilder;
         this.geminiClient = geminiClient;
         this.responseParser = responseParser;
+        this.inputGuard = inputGuard;
     }
 
     public ChatResponse chat(Long userId, String message) {
+        if (!inputGuard.isAllowed(message)) {
+    return new ChatResponse(
+            "For security reasons, I cannot process that request."
+    );
+}
         UserContext context = null;
         try {
             context = contextBuilder.buildContext(userId);

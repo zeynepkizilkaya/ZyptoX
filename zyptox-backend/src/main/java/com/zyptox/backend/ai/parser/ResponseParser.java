@@ -18,7 +18,29 @@ public class ResponseParser {
             return "No response from Gemini.";
         }
 
-        String text = response.candidates().get(0).content().parts().get(0).text();
-        return text != null ? text.trim() : "Empty response from Gemini.";
+        String text = response.candidates()
+                .get(0)
+                .content()
+                .parts()
+                .get(0)
+                .text();
+
+        if (text == null) {
+            return "Empty response.";
+        }
+
+        text = text.trim();
+
+        String lower = text.toLowerCase();
+
+        if (lower.contains("system prompt")
+                || lower.contains("developer instructions")
+                || lower.contains("api key")
+                || lower.contains("internal instructions")) {
+
+            return "⚠️ The response was blocked for security reasons.";
+        }
+
+        return text;
     }
 }
