@@ -41,12 +41,14 @@ public class ContextBuilder {
         // 1. Build Portfolio String
         List<Wallet> wallets = walletRepository.findByUserId(userId);
         StringBuilder portfolioBuilder = new StringBuilder();
-        portfolioBuilder.append(String.format("USD Cash Balance: $%s\n", user.getBalance().toString()));
+        portfolioBuilder.append(
+                String.format("USD Cash Balance: $%.2f%n", user.getBalance().doubleValue()));
         if (wallets.isEmpty()) {
             portfolioBuilder.append("No cryptocurrency holdings.");
         } else {
             for (Wallet w : wallets) {
-                portfolioBuilder.append(String.format("- %s: %s units\n", w.getAssetSymbol(), w.getAmount().toString()));
+                portfolioBuilder
+                        .append(String.format("- %s: %s units\n", w.getAssetSymbol(), w.getAmount().toString()));
             }
         }
         context.setPortfolio(portfolioBuilder.toString());
@@ -55,8 +57,9 @@ public class ContextBuilder {
         List<MarketPriceResponse> prices = priceService.getPrices();
         StringBuilder marketBuilder = new StringBuilder();
         for (MarketPriceResponse p : prices) {
-            marketBuilder.append(String.format("- %s (%s): $%s (%s%% 24h change)\n",
-                    p.getSymbol(), p.getName(), p.getPrice().toString(), p.getChange24h().toString()));
+            marketBuilder.append(String.format( "- %s (%s): $%s (%s%% 24h change)\n", 
+
+    p.getSymbol(),  p.getName(),  p.getPrice().toString(),  p.getChange24h().toString() ));
         }
         context.setMarketSummary(marketBuilder.toString());
 
@@ -70,14 +73,14 @@ public class ContextBuilder {
             List<Transaction> recent = txs.stream().limit(10).toList();
             for (Transaction tx : recent) {
                 txBuilder.append(String.format("- %s %s %s units at $%s executed at %s\n",
-                        tx.getType(), tx.getVolume().toString(), tx.getAssetSymbol(), tx.getPrice().toString(), tx.getExecutedAt().toString()));
+                        tx.getType(), tx.getVolume().toString(), tx.getAssetSymbol(), String.format("%.2f", tx.getPrice().doubleValue()),
+                        tx.getExecutedAt().toString()));
             }
         }
         context.setRecentTrades(txBuilder.toString());
 
         context.setConversationHistory(
-        conversationMemoryService.getConversation(userId)
-);
+                conversationMemoryService.getConversation(userId));
 
         return context;
     }
