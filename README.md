@@ -141,5 +141,5 @@ npm run dev
 ## Contributors and Roles
 
 - **Zeynep Kızılkaya**: Backend Architecture & Google Gemini AI Integration. [GitHub Profile](https://github.com/zeynepkizilkaya)
-- **Efe Koç**: Frontend SPA & UI/UX Development. [GitHub Profile](https://github.com/efekoc)
+- **Efe Koç**: Frontend SPA & UI/UX Development. [GitHub Profile](https://github.com/efeio)
 - **Zeynep Sıla Durak**: PostgreSQL/Redis Database Schema & Docker Containerization. [GitHub Profile](https://github.com/zeynepsldrk)
