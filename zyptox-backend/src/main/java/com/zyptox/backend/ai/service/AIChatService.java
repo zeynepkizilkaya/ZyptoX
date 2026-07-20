@@ -49,6 +49,8 @@ public class AIChatService {
         this.priceService = priceService;
     }
 
+    public static volatile String lastError = "No errors recorded yet";
+
     public ChatResponse chat(Long userId, String message) {
         if (!inputGuard.isAllowed(message)) {
     return new ChatResponse(
@@ -65,6 +67,7 @@ public class AIChatService {
             conversationMemoryService.addAssistantMessage(userId, answer);
             return new ChatResponse(answer);
         } catch (Exception e) {
+            lastError = e.toString() + (e.getCause() != null ? " | Cause: " + e.getCause().toString() : "");
             log.error("Gemini AI API execution failed. Returning fallback mock response.", e);
             // Fallback response if Gemini fails or is rate limited
             if (context == null) {
