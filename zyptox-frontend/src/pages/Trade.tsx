@@ -132,7 +132,6 @@ export const Trade: React.FC<TradeProps> = ({ initialSymbol = 'BTC', initialActi
   const [watchlistSearch, setWatchlistSearch] = useState('');
 
   const [klineData, setKlineData] = useState<{ price: number; time: string; volume: number }[] | null>(null);
-  const [isLoadingKline, setIsLoadingKline] = useState(false);
   const [livePrice, setLivePrice] = useState<number | null>(null);
 
   const currentCoin = prices.find(p => p.symbol === selectedSymbol) || prices[0];
@@ -147,7 +146,6 @@ export const Trade: React.FC<TradeProps> = ({ initialSymbol = 'BTC', initialActi
     if (!selectedSymbol) return;
 
     let isMounted = true;
-    setIsLoadingKline(true);
 
     const fetchKlines = async () => {
       try {
@@ -197,13 +195,11 @@ export const Trade: React.FC<TradeProps> = ({ initialSymbol = 'BTC', initialActi
           }
 
           setKlineData(parsed);
-          setIsLoadingKline(false);
         }
       } catch (err) {
         console.error('Failed to load klines from Binance, using simulated data', err);
         if (isMounted) {
           setKlineData(null);
-          setIsLoadingKline(false);
         }
       }
     };
@@ -776,7 +772,7 @@ export const Trade: React.FC<TradeProps> = ({ initialSymbol = 'BTC', initialActi
                     const dp = chartData.dataPoints[idx];
                     if (!dp) return null;
                     const x = 20 + (idx / (chartData.dataPoints.length - 1)) * 920;
-                    let anchor = 'middle';
+                    let anchor: "inherit" | "middle" | "start" | "end" | undefined = 'middle';
                     if (i === 0) anchor = 'start';
                     if (i === 4) anchor = 'end';
                     return (
