@@ -28,7 +28,7 @@ public class GeminiClient {
                 + ":generateContent";
 
         String apiKey = geminiConfig.getApiKey();
-        boolean isAccessToken = apiKey != null && (apiKey.startsWith("AQ.") || apiKey.startsWith("ya29."));
+        boolean isAccessToken = apiKey != null && apiKey.startsWith("ya29.");
 
         try {
             var spec = restClient.post()
