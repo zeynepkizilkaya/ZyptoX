@@ -23,18 +23,11 @@ public class GeminiClient {
 
         GeminiRequest request = buildRequest(prompt);
 
-        String url =
-                "https://generativelanguage.googleapis.com/v1/models/"
-                        + geminiConfig.getModel()
-                        + ":generateContent";
-        String apiKey = geminiConfig.getApiKey();
-        System.out.println("--- Gemini AI Diagnostic Log ---");
-        System.out.println("Using Model: " + geminiConfig.getModel());
-        System.out.println("API Key Loaded Length: " + (apiKey != null ? apiKey.length() : 0));
-        System.out.println("API Key Loaded Prefix: " + (apiKey != null && apiKey.length() > 10 ? apiKey.substring(0, 10) : "N/A"));
-        System.out.println("Target URL: " + url);
-        System.out.println("--------------------------------");
+        String url = "https://generativelanguage.googleapis.com/v1/models/"
+                + geminiConfig.getModel()
+                + ":generateContent";
 
+        String apiKey = geminiConfig.getApiKey();
         boolean isAccessToken = apiKey != null && (apiKey.startsWith("AQ.") || apiKey.startsWith("ya29."));
 
         try {
@@ -51,21 +44,6 @@ public class GeminiClient {
 
             return spec.retrieve().body(GeminiResponse.class);
         } catch (Exception e) {
-            System.out.println("--- ERROR: Listing Authorized Models for Diagnostic ---");
-            try {
-                String listUrl = "https://generativelanguage.googleapis.com/v1/models";
-                var getSpec = restClient.get().uri(listUrl);
-                if (isAccessToken) {
-                    getSpec.header("Authorization", "Bearer " + apiKey);
-                } else {
-                    getSpec.header("x-goog-api-key", apiKey);
-                }
-                String responseBody = getSpec.retrieve().body(String.class);
-                System.out.println("Available Models: " + responseBody);
-            } catch (Exception listEx) {
-                System.out.println("Failed to list models. Error: " + listEx.getMessage());
-            }
-            System.out.println("-------------------------------------------------------");
             throw e;
         }
     }
