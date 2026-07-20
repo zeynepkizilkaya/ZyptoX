@@ -11,6 +11,8 @@ interface PortfolioProps {
 }
 
 export const CoinIcon: React.FC<{ symbol: string; className?: string }> = ({ symbol, className = 'w-6 h-6' }) => {
+  const [imgError, setImgError] = React.useState(false);
+
   const gradientStyles: Record<string, string> = {
     BTC: 'from-[#f7931a] to-[#d97706]',
     ETH: 'from-[#627eea] to-[#4338ca]',
@@ -26,6 +28,31 @@ export const CoinIcon: React.FC<{ symbol: string; className?: string }> = ({ sym
     if (sym === 'ETH') return 'Ξ';
     return sym.substring(0, 3);
   };
+
+  const overrideUrls: Record<string, string> = {
+    SHIB: 'https://assets.coingecko.com/coins/images/11939/large/shiba.png',
+    TON: 'https://assets.coingecko.com/coins/images/17980/large/ton_token_blue.png',
+    NEAR: 'https://assets.coingecko.com/coins/images/10365/large/near.png',
+    PEPE: 'https://assets.coingecko.com/coins/images/30349/large/pepe.png',
+    WIF: 'https://assets.coingecko.com/coins/images/33566/large/dogwifhat.png',
+    RENDER: 'https://assets.coingecko.com/coins/images/11636/large/render.png',
+    SUI: 'https://assets.coingecko.com/coins/images/26375/large/sui_single_logo.png',
+    APT: 'https://assets.coingecko.com/coins/images/26455/large/aptos_release.png',
+    TIA: 'https://assets.coingecko.com/coins/images/31967/large/celestia.png',
+  };
+
+  const iconUrl = overrideUrls[symbol] || `https://cdn.jsdelivr.net/npm/cryptocurrency-icons@latest/svg/color/${symbol.toLowerCase()}.svg`;
+
+  if (!imgError && symbol !== 'USD' && symbol !== 'Cash') {
+    return (
+      <img
+        src={iconUrl}
+        alt={symbol}
+        className={`rounded-full flex-shrink-0 select-none ${className}`}
+        onError={() => setImgError(true)}
+      />
+    );
+  }
 
   return (
     <div
@@ -511,8 +538,23 @@ export const Portfolio: React.FC<PortfolioProps> = ({ onTradeSelect }) => {
 
   const formatUSD = (v: number) => v.toLocaleString('en-US', { style: 'currency', currency: 'USD' });
 
+  const formatPrice = (val: number, includeSymbol = true) => {
+    const prefix = includeSymbol ? '$' : '';
+    if (val === 0) return `${prefix}0.00`;
+    if (val < 0.001) {
+      return `${prefix}${val.toLocaleString('en-US', { minimumFractionDigits: 8, maximumFractionDigits: 8 })}`;
+    }
+    if (val < 1) {
+      return `${prefix}${val.toLocaleString('en-US', { minimumFractionDigits: 6, maximumFractionDigits: 6 })}`;
+    }
+    if (val < 10) {
+      return `${prefix}${val.toLocaleString('en-US', { minimumFractionDigits: 4, maximumFractionDigits: 4 })}`;
+    }
+    return `${prefix}${val.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  };
+
   return (
-    <div className="max-w-6xl mx-auto py-8 px-4 flex flex-col gap-6 animate-fade-in font-sans">
+    <div className="max-w-[1280px] mx-auto py-8 px-6 flex flex-col gap-6 animate-fade-in font-sans min-h-screen">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-bold tracking-tight">{t('walletPortfolioAnalysis')}</h1>
         <button
@@ -695,7 +737,7 @@ export const Portfolio: React.FC<PortfolioProps> = ({ onTradeSelect }) => {
                     <button
                       key={f}
                       onClick={() => setPerformanceFilter(f)}
-                      className={`px-2.5 py-1 text-[9px] font-black rounded-md capitalize transition-colors duration-100 ${performanceFilter === f
+                      className={`w-20 text-center py-1 text-[9px] font-black rounded-md capitalize transition-colors duration-100 ${performanceFilter === f
                         ? 'bg-white dark:bg-surface-card-dark text-primary shadow-xs'
                         : 'text-muted hover:text-ink dark:hover:text-on-dark'
                         }`}
@@ -707,97 +749,102 @@ export const Portfolio: React.FC<PortfolioProps> = ({ onTradeSelect }) => {
               </div>
             </div>
 
-            <div className="bg-white dark:bg-surface-card-dark border border-hairline-light dark:border-hairline-dark rounded-2xl p-4 shadow-sm overflow-x-auto">
-              {filteredAndSortedHoldings.length === 0 ? (
-                <p className="text-xs text-muted py-10 text-center font-semibold">No crypto assets match your criteria.</p>
-              ) : (
-                <table className="w-full text-left border-collapse">
-                  <thead>
-                    <tr className="border-b border-hairline-light dark:border-hairline-dark text-muted text-[10px] font-bold uppercase tracking-wider select-none">
-                      <th className="py-2.5 pl-3 cursor-pointer hover:text-ink dark:hover:text-on-dark" onClick={() => handleSort('symbol')}>
-                        {t('marketCoin')} {sortField === 'symbol' ? (sortOrder === 'asc' ? '↑' : '↓') : ''}
-                      </th>
-                      <th className="py-2.5 px-2 text-right cursor-pointer hover:text-ink dark:hover:text-on-dark" onClick={() => handleSort('amount')}>
-                        {t('amount')} {sortField === 'amount' ? (sortOrder === 'asc' ? '↑' : '↓') : ''}
-                      </th>
-                      <th className="py-2.5 px-2 text-right">{t('marketPrice')}</th>
-                      <th className="py-2.5 px-2 text-right cursor-pointer hover:text-ink dark:hover:text-on-dark" onClick={() => handleSort('value')}>
-                        {t('totalValue')} {sortField === 'value' ? (sortOrder === 'asc' ? '↑' : '↓') : ''}
-                      </th>
-                      <th className="py-2.5 px-2 text-center hidden md:table-cell">{t('marketSparkline')}</th>
-                      <th className="py-2.5 px-2 text-right cursor-pointer hover:text-ink dark:hover:text-on-dark" onClick={() => handleSort('roiPercent')}>
-                        {t('roi')} {sortField === 'roiPercent' ? (sortOrder === 'asc' ? '↑' : '↓') : ''}
-                      </th>
-                      <th className="py-2.5 pr-3 text-right">{t('marketAction')}</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {filteredAndSortedHoldings.map(hold => {
-                      const isHovered = hoveredSymbol === hold.symbol;
-                      return (
-                        <tr
-                          key={hold.symbol}
-                          onMouseEnter={() => setHoveredSymbol(hold.symbol)}
-                          onMouseLeave={() => setHoveredSymbol(null)}
-                          className={`border-b border-hairline-light/50 dark:border-hairline-dark/30 text-xs font-semibold transition-all duration-100 ${isHovered
-                            ? 'bg-slate-50/70 dark:bg-surface-elevated-dark/20'
-                            : 'hover:bg-slate-50/30 dark:hover:bg-surface-elevated-dark/10'
-                            }`}
-                        >
-                          <td className="py-3 pl-3">
-                            <div className="flex items-center gap-2.5">
-                              <CoinIcon symbol={hold.symbol} className="w-6 h-6" />
-                              <div className="flex flex-col">
-                                <span className="font-bold text-ink dark:text-on-dark">{hold.symbol}</span>
-                                <span className="text-[9px] text-muted font-medium font-sans">{hold.name}</span>
-                              </div>
-                            </div>
-                          </td>
-                          <td className="py-3 px-2 text-right font-mono text-ink dark:text-on-dark">
-                            {hold.amount.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 6 })}
-                          </td>
-                          <td className="py-3 px-2 text-right font-mono text-muted">
-                            ${hold.currentPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                          </td>
-                          <td className="py-3 px-2 text-right font-mono font-extrabold text-ink dark:text-on-dark">
-                            ${hold.value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                          </td>
-                          <td className="py-3 px-2 align-middle hidden md:table-cell">
-                            <div className="flex justify-center">{renderSparkline(hold.sparkline, hold.change24h)}</div>
-                          </td>
-                          <td className={`py-3 px-2 text-right font-mono font-black ${hold.roiPercent >= 0 ? 'text-trading-up' : 'text-trading-down'}`}>
-                            {hold.roiPercent >= 0 ? '+' : ''}
-                            {hold.roiPercent.toFixed(2)}%
-                          </td>
-                          <td className="py-3 pr-3 text-right">
-                            <div className="flex items-center justify-end gap-1.5 font-sans">
-                              <button
-                                type="button"
-                                onClick={() => onTradeSelect(hold.symbol, 'BUY')}
-                                className="px-3 py-1 rounded-full bg-trading-up/10 hover:bg-trading-up/25 active:scale-95 text-trading-up text-[10px] font-extrabold transition-all duration-100"
-                              >
-                                Buy
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => onTradeSelect(hold.symbol, 'SELL')}
-                                className="px-3 py-1 rounded-full bg-trading-down/10 hover:bg-trading-down/25 active:scale-95 text-trading-down text-[10px] font-extrabold transition-all duration-100"
-                              >
-                                Sell
-                              </button>
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
+            <div className="bg-white dark:bg-surface-card-dark border border-hairline-light dark:border-hairline-dark rounded-2xl p-4 shadow-sm overflow-hidden relative" style={{ flexShrink: 0 }}>
+              {/* Overlay message when no items match - positioned absolutely so it doesn't affect layout */}
+              {filteredAndSortedHoldings.length === 0 && (
+                <div className="absolute inset-0 flex items-center justify-center z-10 bg-white dark:bg-surface-card-dark rounded-2xl">
+                  <p className="text-xs text-muted text-center font-semibold">{t('noCoinsFound')}</p>
+                </div>
               )}
+              {/* ALWAYS render the full table - never remove rows from DOM */}
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="border-b border-hairline-light dark:border-hairline-dark text-muted text-[10px] font-bold uppercase tracking-wider select-none">
+                    <th className="py-2.5 pl-3 cursor-pointer hover:text-ink dark:hover:text-on-dark" onClick={() => handleSort('symbol')}>
+                      {t('marketCoin')} {sortField === 'symbol' ? (sortOrder === 'asc' ? '↑' : '↓') : ''}
+                    </th>
+                    <th className="py-2.5 px-2 text-right cursor-pointer hover:text-ink dark:hover:text-on-dark" onClick={() => handleSort('amount')}>
+                      {t('amount')} {sortField === 'amount' ? (sortOrder === 'asc' ? '↑' : '↓') : ''}
+                    </th>
+                    <th className="py-2.5 px-2 text-right">{t('marketPrice')}</th>
+                    <th className="py-2.5 px-2 text-right cursor-pointer hover:text-ink dark:hover:text-on-dark" onClick={() => handleSort('value')}>
+                      {t('totalValue')} {sortField === 'value' ? (sortOrder === 'asc' ? '↑' : '↓') : ''}
+                    </th>
+                    <th className="py-2.5 px-2 text-center hidden md:table-cell">{t('marketSparkline')}</th>
+                    <th className="py-2.5 px-2 text-right cursor-pointer hover:text-ink dark:hover:text-on-dark" onClick={() => handleSort('roiPercent')}>
+                      {t('roi')} {sortField === 'roiPercent' ? (sortOrder === 'asc' ? '↑' : '↓') : ''}
+                    </th>
+                    <th className="py-2.5 pr-3 text-right">{t('marketAction')}</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {portfolioHoldings.map(hold => {
+                    const isVisible = filteredAndSortedHoldings.some(h => h.symbol === hold.symbol);
+                    const isHovered = hoveredSymbol === hold.symbol;
+                    return (
+                      <tr
+                        key={hold.symbol}
+                        onMouseEnter={() => isVisible ? setHoveredSymbol(hold.symbol) : undefined}
+                        onMouseLeave={() => setHoveredSymbol(null)}
+                        style={{ visibility: isVisible ? 'visible' : 'hidden' }}
+                        className={`border-b border-hairline-light/50 dark:border-hairline-dark/30 text-xs font-semibold transition-all duration-100 ${isHovered
+                          ? 'bg-slate-50/70 dark:bg-surface-elevated-dark/20'
+                          : 'hover:bg-slate-50/30 dark:hover:bg-surface-elevated-dark/10'
+                          }`}
+                      >
+                        <td className="py-3 pl-3">
+                          <div className="flex items-center gap-2.5">
+                            <CoinIcon symbol={hold.symbol} className="w-6 h-6" />
+                            <div className="flex flex-col">
+                              <span className="font-bold text-ink dark:text-on-dark">{hold.symbol}</span>
+                              <span className="text-[9px] text-muted font-medium font-sans">{hold.name}</span>
+                            </div>
+                          </div>
+                        </td>
+                        <td className="py-3 px-2 text-right font-mono text-ink dark:text-on-dark">
+                          {hold.amount.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 6 })}
+                        </td>
+                        <td className="py-3 px-2 text-right font-mono text-muted">
+                          {formatPrice(hold.currentPrice)}
+                        </td>
+                        <td className="py-3 px-2 text-right font-mono font-extrabold text-ink dark:text-on-dark">
+                          ${hold.value.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                        </td>
+                        <td className="py-3 px-2 align-middle hidden md:table-cell">
+                          <div className="flex justify-center">{renderSparkline(hold.sparkline, hold.change24h)}</div>
+                        </td>
+                        <td className={`py-3 px-2 text-right font-mono font-black ${hold.roiPercent >= 0 ? 'text-trading-up' : 'text-trading-down'}`}>
+                          {hold.roiPercent >= 0 ? '+' : ''}
+                          {hold.roiPercent.toFixed(2)}%
+                        </td>
+                        <td className="py-3 pr-3 text-right">
+                          <div className="flex items-center justify-end gap-1.5 font-sans">
+                            <button
+                              type="button"
+                              onClick={() => onTradeSelect(hold.symbol, 'BUY')}
+                              className="px-3 py-1 rounded-full bg-trading-up/10 hover:bg-trading-up/25 active:scale-95 text-trading-up text-[10px] font-extrabold transition-all duration-100"
+                            >
+                              Buy
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => onTradeSelect(hold.symbol, 'SELL')}
+                              className="px-3 py-1 rounded-full bg-trading-down/10 hover:bg-trading-down/25 active:scale-95 text-trading-down text-[10px] font-extrabold transition-all duration-100"
+                            >
+                              Sell
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
             </div>
           </div>
         </div>
 
-        <div className="flex flex-col gap-6">
+        <div className="flex flex-col gap-6 self-start lg:sticky lg:top-6">
           <div className="p-5 bg-white dark:bg-surface-card-dark border border-hairline-light dark:border-hairline-dark rounded-2xl shadow-sm flex flex-col gap-4 animate-fade-in">
             <h3 className="text-sm font-bold text-ink dark:text-on-dark text-left">{t('assetDistribution')}</h3>
 
@@ -976,9 +1023,11 @@ export const Portfolio: React.FC<PortfolioProps> = ({ onTradeSelect }) => {
           <div className="flex flex-col gap-4">
             <h3 className="text-lg font-bold">{t('recentTransactions')}</h3>
 
-            <div className="bg-white dark:bg-surface-card-dark border border-hairline-light dark:border-hairline-dark rounded-2xl p-5 shadow-sm max-h-[360px] overflow-y-auto">
+            <div className="bg-white dark:bg-surface-card-dark border border-hairline-light dark:border-hairline-dark rounded-2xl p-5 shadow-sm min-h-[360px] max-h-[360px] overflow-y-auto flex flex-col">
               {transactions.length === 0 ? (
-                <p className="text-xs text-muted py-10 text-center font-semibold">{t('noTransactions')}</p>
+                <div className="flex-1 flex items-center justify-center py-10">
+                  <p className="text-xs text-muted text-center font-semibold">{t('noTransactions')}</p>
+                </div>
               ) : (
                 <div className="flex flex-col gap-4 pb-2">
                   {transactions.map(tx => (
@@ -1000,7 +1049,7 @@ export const Portfolio: React.FC<PortfolioProps> = ({ onTradeSelect }) => {
                       </div>
                       <div className="flex justify-between text-[10px] text-muted">
                         <span>
-                          {tx.amount} units @ ${tx.price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          {tx.amount} units @ {formatPrice(tx.price)}
                         </span>
                         <span className="font-mono font-medium">
                           {new Date(tx.timestamp).toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}

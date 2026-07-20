@@ -27,7 +27,7 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
 
   return (
     <nav className="sticky top-0 z-50 w-full h-16 border-b font-sans transition-colors duration-200 bg-white border-hairline-light dark:bg-canvas-dark dark:border-hairline-dark">
-      <div className="max-w-[1440px] h-full mx-auto px-6 flex items-center justify-between">
+      <div className="max-w-[1280px] h-full mx-auto px-6 flex items-center justify-between">
         
         <div className="flex items-center gap-8">
           <div 
@@ -43,12 +43,12 @@ export const Navbar: React.FC<NavbarProps> = ({ activeTab, setActiveTab }) => {
           </div>
 
           {isAuthenticated && (
-            <div className="hidden md:flex items-center gap-6">
+            <div className="hidden md:flex items-center gap-2">
               {menuItems.map(item => (
                 <button
                   key={item.id}
                   onClick={() => setActiveTab(item.id)}
-                  className={`text-sm font-medium transition-colors duration-150 py-2 border-b-2 ${
+                  className={`w-28 text-center text-sm font-medium transition-colors duration-150 py-2 border-b-2 ${
                     activeTab === item.id
                       ? 'border-primary text-ink dark:text-on-dark font-semibold'
                       : 'border-transparent text-muted hover:text-ink dark:hover:text-on-dark'

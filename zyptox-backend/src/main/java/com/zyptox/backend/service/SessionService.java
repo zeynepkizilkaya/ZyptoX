@@ -21,7 +21,7 @@ public class SessionService {
     private final ObjectMapper objectMapper = new ObjectMapper();
 
     private static final String SESSION_KEY_PREFIX = "session:";
-    private static final Duration SESSION_TTL = Duration.ofMinutes(30);
+    private static final Duration SESSION_TTL = Duration.ofDays(7);
 
     public String createSession(UserSession session) {
     String token = UUID.randomUUID().toString();

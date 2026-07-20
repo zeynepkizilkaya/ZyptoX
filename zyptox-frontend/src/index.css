@@ -3,8 +3,12 @@
 @tailwind utilities;
 
 @layer base {
+  html {
+    scrollbar-gutter: stable;
+  }
   body {
     @apply font-sans antialiased;
+    overflow-y: scroll;
   }
 
   .font-mono {

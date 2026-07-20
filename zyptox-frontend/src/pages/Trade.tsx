@@ -102,6 +102,21 @@ const TradeSkeleton: React.FC = () => {
   );
 };
 
+const formatPrice = (val: number, includeSymbol = true) => {
+  const prefix = includeSymbol ? '$' : '';
+  if (val === 0) return `${prefix}0.00`;
+  if (val < 0.001) {
+    return `${prefix}${val.toLocaleString('en-US', { minimumFractionDigits: 8, maximumFractionDigits: 8 })}`;
+  }
+  if (val < 1) {
+    return `${prefix}${val.toLocaleString('en-US', { minimumFractionDigits: 6, maximumFractionDigits: 6 })}`;
+  }
+  if (val < 10) {
+    return `${prefix}${val.toLocaleString('en-US', { minimumFractionDigits: 4, maximumFractionDigits: 4 })}`;
+  }
+  return `${prefix}${val.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+};
+
 export const Trade: React.FC<TradeProps> = ({ initialSymbol = 'BTC', initialAction }) => {
   const { prices } = useMarket();
   const { user, refreshUser } = useAuth();
@@ -115,6 +130,179 @@ export const Trade: React.FC<TradeProps> = ({ initialSymbol = 'BTC', initialActi
   const [hoverIdx, setHoverIdx] = useState<number | null>(null);
   const [timeframe, setTimeframe] = useState<'1H' | '4H' | '24H' | '1W'>('24H');
   const [watchlistSearch, setWatchlistSearch] = useState('');
+
+  const [klineData, setKlineData] = useState<{ price: number; time: string; volume: number }[] | null>(null);
+  const [isLoadingKline, setIsLoadingKline] = useState(false);
+  const [livePrice, setLivePrice] = useState<number | null>(null);
+
+  const currentCoin = prices.find(p => p.symbol === selectedSymbol) || prices[0];
+
+  useEffect(() => {
+    if (currentCoin) {
+      setLivePrice(currentCoin.price);
+    }
+  }, [selectedSymbol, currentCoin?.price]);
+
+  useEffect(() => {
+    if (!selectedSymbol) return;
+
+    let isMounted = true;
+    setIsLoadingKline(true);
+
+    const fetchKlines = async () => {
+      try {
+        let interval = '1h';
+        let limit = 24;
+
+        if (timeframe === '1H') {
+          interval = '5m';
+          limit = 12;
+        } else if (timeframe === '4H') {
+          interval = '15m';
+          limit = 16;
+        } else if (timeframe === '24H') {
+          interval = '1h';
+          limit = 24;
+        } else if (timeframe === '1W') {
+          interval = '4h';
+          limit = 42;
+        }
+
+        const rawData = await api.getKlines(selectedSymbol, interval, limit);
+        
+        if (isMounted) {
+          const parsed = rawData.map((d: any) => {
+            const timeMs = d[0];
+            const date = new Date(timeMs);
+            let timeLabel = '';
+
+            if (timeframe === '1H' || timeframe === '4H') {
+              timeLabel = date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
+            } else if (timeframe === '1W') {
+              timeLabel = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            } else {
+              timeLabel = date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
+            }
+
+            return {
+              price: parseFloat(d[4]),
+              time: timeLabel,
+              volume: parseFloat(d[5]),
+            };
+          });
+
+          const currentCoin = prices.find(p => p.symbol === selectedSymbol);
+          if (parsed.length > 0 && currentCoin) {
+            parsed[parsed.length - 1].price = currentCoin.price;
+          }
+
+          setKlineData(parsed);
+          setIsLoadingKline(false);
+        }
+      } catch (err) {
+        console.error('Failed to load klines from Binance, using simulated data', err);
+        if (isMounted) {
+          setKlineData(null);
+          setIsLoadingKline(false);
+        }
+      }
+    };
+
+    fetchKlines();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [selectedSymbol, timeframe, prices]);
+
+  useEffect(() => {
+    let ws: WebSocket | null = null;
+    let isMounted = true;
+
+    if (!selectedSymbol || !klineData || klineData.length === 0) return;
+
+    let binanceInterval = '1h';
+    if (timeframe === '1H') binanceInterval = '5m';
+    else if (timeframe === '4H') binanceInterval = '15m';
+    else if (timeframe === '24H') binanceInterval = '1h';
+    else if (timeframe === '1W') binanceInterval = '4h';
+
+    const wsSymbol = selectedSymbol.toLowerCase() + 'usdt';
+    const wsUrl = `wss://stream.binance.com:9443/ws/${wsSymbol}@kline_${binanceInterval}`;
+
+    try {
+      ws = new WebSocket(wsUrl);
+
+      ws.onmessage = (event) => {
+        if (!isMounted) return;
+        try {
+          const message = JSON.parse(event.data);
+          if (message.e === 'kline') {
+            const k = message.k;
+            const price = parseFloat(k.c);
+            const volume = parseFloat(k.v);
+            const openTimeMs = k.t;
+
+            // Generate time label in exact format
+            const date = new Date(openTimeMs);
+            let timeLabel = '';
+            if (timeframe === '1H' || timeframe === '4H') {
+              timeLabel = date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
+            } else if (timeframe === '1W') {
+              timeLabel = date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+            } else {
+              timeLabel = date.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
+            }
+
+            // Update live price state
+            setLivePrice(price);
+
+            // Update chart data points
+            setKlineData((prevData) => {
+              if (!prevData || prevData.length === 0) return prevData;
+              
+              const newData = [...prevData];
+              const lastIdx = newData.length - 1;
+              const lastPoint = newData[lastIdx];
+
+              if (lastPoint.time === timeLabel) {
+                newData[lastIdx] = {
+                  ...lastPoint,
+                  price: price,
+                  volume: volume,
+                };
+              } else {
+                newData.push({
+                  price: price,
+                  time: timeLabel,
+                  volume: volume,
+                });
+                if (newData.length > 50) {
+                  newData.shift();
+                }
+              }
+              return newData;
+            });
+          }
+        } catch (e) {
+          console.error('Error parsing kline ws message:', e);
+        }
+      };
+
+      ws.onerror = (err) => {
+        console.error('Binance Kline WS error:', err);
+      };
+    } catch (err) {
+      console.error('Failed to connect to Binance Kline WS:', err);
+    }
+
+    return () => {
+      isMounted = false;
+      if (ws) {
+        ws.close();
+      }
+    };
+  }, [selectedSymbol, timeframe, !!klineData]);
 
   const [submitting, setSubmitting] = useState(false);
   const [tradeStatus, setTradeStatus] = useState<{ type: 'SUCCESS' | 'ERROR'; message: string } | null>(null);
@@ -151,81 +339,89 @@ export const Trade: React.FC<TradeProps> = ({ initialSymbol = 'BTC', initialActi
     loadHoldings();
   }, [submitting]);
 
-  const currentCoin = prices.find(p => p.symbol === selectedSymbol) || prices[0];
+
 
   const chartData = useMemo(() => {
     if (!currentCoin) return null;
-    let sparkline = [...currentCoin.sparkline];
 
-    if (timeframe === '1H') {
-      sparkline = Array.from({ length: 24 }, (_, i) =>
-        currentCoin.price * (1 + Math.sin(i * 0.8) * 0.005 + (i * 0.0002))
-      );
-    } else if (timeframe === '4H') {
-      sparkline = Array.from({ length: 24 }, (_, i) =>
-        currentCoin.price * (1 + Math.cos(i * 0.5) * 0.012 - (i * 0.0005))
-      );
-    } else if (timeframe === '1W') {
-      sparkline = Array.from({ length: 24 }, (_, i) =>
-        currentCoin.price * (1 + Math.sin(i * 0.3) * 0.035 + Math.cos(i * 0.7) * 0.015)
-      );
-    }
+    let dataPoints: { price: number; time: string; volume: number; isUp: boolean }[] = [];
+    let minP = 0;
+    let maxP = 0;
 
-    const pointsCount = 24;
-    const dataPoints: { price: number; time: string; volume: number; isUp: boolean }[] = [];
+    if (klineData && klineData.length > 0) {
+      const pricesList = klineData.map(kd => kd.price);
+      minP = Math.min(...pricesList);
+      maxP = Math.max(...pricesList);
+      
+      dataPoints = klineData.map((kd, i) => {
+        const prevPrice = i > 0 ? klineData[i - 1].price : klineData[0].price;
+        return {
+          price: kd.price,
+          time: kd.time,
+          volume: kd.volume,
+          isUp: kd.price >= prevPrice,
+        };
+      });
+    } else {
+      let sparkline = [...currentCoin.sparkline];
 
-    const minP = Math.min(...sparkline);
-    const maxP = Math.max(...sparkline);
-    const rangeP = (maxP - minP) || 1;
-
-    const now = new Date();
-
-    for (let i = 0; i < pointsCount; i++) {
-      const ratio = i / (pointsCount - 1);
-      const sparkIndexFloat = ratio * (sparkline.length - 1);
-      const leftIdx = Math.floor(sparkIndexFloat);
-      const rightIdx = Math.ceil(sparkIndexFloat);
-      const fraction = sparkIndexFloat - leftIdx;
-
-      const leftVal = sparkline[leftIdx];
-      const rightVal = sparkline[rightIdx];
-      const interpolatedPrice = leftVal + (rightVal - leftVal) * fraction;
-
-      let timeLabel = '';
       if (timeframe === '1H') {
-        const minsAgo = (23 - i) * 2.5;
-        const targetDate = new Date(now.getTime() - minsAgo * 60 * 1000);
-        timeLabel = targetDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
+        sparkline = Array.from({ length: 24 }, (_, i) =>
+          currentCoin.price * (1 + Math.sin(i * 0.8) * 0.005 + (i * 0.0002))
+        );
       } else if (timeframe === '4H') {
-        const minsAgo = (23 - i) * 10;
-        const targetDate = new Date(now.getTime() - minsAgo * 60 * 1000);
-        timeLabel = targetDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
+        sparkline = Array.from({ length: 24 }, (_, i) =>
+          currentCoin.price * (1 + Math.cos(i * 0.5) * 0.012 - (i * 0.0005))
+        );
       } else if (timeframe === '1W') {
-        const hoursAgo = (23 - i) * 7;
-        const targetDate = new Date(now.getTime() - hoursAgo * 60 * 60 * 1000);
-        timeLabel = targetDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
-      } else {
-        const hoursAgo = 23 - i;
-        const targetDate = new Date(now.getTime() - hoursAgo * 60 * 60 * 1000);
-        timeLabel = targetDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
+        sparkline = Array.from({ length: 24 }, (_, i) =>
+          currentCoin.price * (1 + Math.sin(i * 0.3) * 0.035 + Math.cos(i * 0.7) * 0.015)
+        );
       }
 
-      const simVolume = Math.round((50 + Math.abs(Math.sin(i * 1.5)) * 180 + (i % 3 === 0 ? 80 : 0)) * 100) / 100;
-      const prevPrice = i > 0 ? dataPoints[i - 1].price : sparkline[0];
-      const itemIsUp = interpolatedPrice >= prevPrice;
+      minP = Math.min(...sparkline);
+      maxP = Math.max(...sparkline);
 
-      dataPoints.push({
-        price: Math.round(interpolatedPrice * 100) / 100,
-        time: timeLabel,
-        volume: simVolume,
-        isUp: itemIsUp,
-      });
+      const pointsCount = sparkline.length;
+      const now = new Date();
+
+      for (let i = 0; i < pointsCount; i++) {
+        let timeLabel = '';
+        if (timeframe === '1H') {
+          const minsAgo = (pointsCount - 1 - i) * 2.5;
+          const targetDate = new Date(now.getTime() - minsAgo * 60 * 1000);
+          timeLabel = targetDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
+        } else if (timeframe === '4H') {
+          const minsAgo = (pointsCount - 1 - i) * 10;
+          const targetDate = new Date(now.getTime() - minsAgo * 60 * 1000);
+          timeLabel = targetDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
+        } else if (timeframe === '1W') {
+          const hoursAgo = (pointsCount - 1 - i) * 7;
+          const targetDate = new Date(now.getTime() - hoursAgo * 60 * 60 * 1000);
+          timeLabel = targetDate.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric' });
+        } else {
+          const hoursAgo = pointsCount - 1 - i;
+          const targetDate = new Date(now.getTime() - hoursAgo * 60 * 60 * 1000);
+          timeLabel = targetDate.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false });
+        }
+
+        const simVolume = Math.round((50 + Math.abs(Math.sin(i * 1.5)) * 180 + (i % 3 === 0 ? 80 : 0)) * 100) / 100;
+        const prevPrice = i > 0 ? sparkline[i - 1] : sparkline[0];
+        
+        dataPoints.push({
+          price: Math.round(sparkline[i] * 100000000) / 100000000,
+          time: timeLabel,
+          volume: simVolume,
+          isUp: sparkline[i] >= prevPrice,
+        });
+      }
     }
 
+    const rangeP = (maxP - minP) || 1;
     const maxVolume = Math.max(...dataPoints.map(d => d.volume)) || 1;
 
     const pointsPath = dataPoints.map((dp, i) => {
-      const x = 20 + (i / (pointsCount - 1)) * 920;
+      const x = 20 + (i / (dataPoints.length - 1)) * 920;
       const y = 250 - ((dp.price - minP) / rangeP) * 220;
       return `${i === 0 ? 'M' : 'L'} ${x},${y}`;
     }).join(' ');
@@ -241,7 +437,7 @@ export const Trade: React.FC<TradeProps> = ({ initialSymbol = 'BTC', initialActi
       pointsPath,
       areaPath,
     };
-  }, [currentCoin, timeframe]);
+  }, [currentCoin, timeframe, klineData]);
 
   const filteredWatchlist = useMemo(() => {
     return prices.filter(p =>
@@ -254,13 +450,17 @@ export const Trade: React.FC<TradeProps> = ({ initialSymbol = 'BTC', initialActi
     return <TradeSkeleton />;
   }
 
-  const coinPrice = currentCoin.price;
+  const coinPrice = livePrice !== null ? livePrice : currentCoin.price;
   const change24h = currentCoin.change24h;
   const isUp = change24h >= 0;
 
+  const isChartUp = chartData.dataPoints.length > 1
+    ? chartData.dataPoints[chartData.dataPoints.length - 1].price >= chartData.dataPoints[0].price
+    : isUp;
+
   const currentHolding = userHoldings.find(h => h.symbol === selectedSymbol)?.amount || 0;
   const enterAmountFloat = parseFloat(amount) || 0;
-  const calculatedTotal = Math.round(enterAmountFloat * coinPrice * 100) / 100;
+  const calculatedTotal = enterAmountFloat * coinPrice;
 
   const handlePercentSelect = (pct: number) => {
     if (tradeAction === 'BUY') {
@@ -365,7 +565,7 @@ export const Trade: React.FC<TradeProps> = ({ initialSymbol = 'BTC', initialActi
         </div>
         <div className="flex justify-between text-ink dark:text-on-dark">
           <span className="font-semibold">Price:</span>
-          <span className="font-mono font-bold">${item.price.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+          <span className="font-mono font-bold">{formatPrice(item.price)}</span>
         </div>
         <div className="flex justify-between text-muted">
           <span className="font-semibold">Vol:</span>
@@ -376,7 +576,7 @@ export const Trade: React.FC<TradeProps> = ({ initialSymbol = 'BTC', initialActi
   };
 
   return (
-    <div className="w-full py-6 px-4 lg:px-8 bg-white dark:bg-canvas-dark text-ink dark:text-on-dark flex flex-col gap-6">
+    <div className="w-full max-w-[1280px] mx-auto py-6 px-6 bg-white dark:bg-canvas-dark text-ink dark:text-on-dark flex flex-col gap-6">
 
       <div className="flex flex-wrap items-center justify-between gap-4 pb-4 border-b border-hairline-light dark:border-hairline-dark">
         <div className="flex items-center gap-4 flex-wrap">
@@ -410,7 +610,7 @@ export const Trade: React.FC<TradeProps> = ({ initialSymbol = 'BTC', initialActi
                         }`}
                     >
                       <span>{p.symbol} / USD ({p.name})</span>
-                      <span className="font-mono text-xs text-muted">${p.price.toLocaleString()}</span>
+                      <span className="font-mono text-xs text-muted">{formatPrice(p.price)}</span>
                     </button>
                   ))}
                 </div>
@@ -426,7 +626,7 @@ export const Trade: React.FC<TradeProps> = ({ initialSymbol = 'BTC', initialActi
 
           <div className="flex items-center gap-6">
             <div className="flex flex-col font-mono">
-              <span className="text-xl font-bold text-ink dark:text-on-dark">${coinPrice.toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+              <span className="text-xl font-bold text-ink dark:text-on-dark">{formatPrice(coinPrice)}</span>
               <span className={`text-xs font-semibold ${isUp ? 'text-trading-up' : 'text-trading-down'}`}>
                 {isUp ? '+' : ''}{change24h}% {isUp ? '▲' : '▼'}
               </span>
@@ -436,13 +636,13 @@ export const Trade: React.FC<TradeProps> = ({ initialSymbol = 'BTC', initialActi
               <div className="flex flex-col font-mono">
                 <span className="text-[9px] text-muted font-semibold uppercase">24h High</span>
                 <span className="text-xs font-bold text-ink dark:text-on-dark">
-                  ${(coinPrice * 1.032).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  {formatPrice(coinPrice * 1.032)}
                 </span>
               </div>
               <div className="flex flex-col font-mono">
                 <span className="text-[9px] text-muted font-semibold uppercase">24h Low</span>
                 <span className="text-xs font-bold text-ink dark:text-on-dark">
-                  ${(coinPrice * 0.965).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                  {formatPrice(coinPrice * 0.965)}
                 </span>
               </div>
               <div className="flex flex-col font-mono">
@@ -500,7 +700,7 @@ export const Trade: React.FC<TradeProps> = ({ initialSymbol = 'BTC', initialActi
                     <span className="text-[9px] text-muted">{p.name}</span>
                   </div>
                   <div className="flex flex-col items-end font-mono">
-                    <span className="text-xs font-bold text-ink dark:text-on-dark">${p.price.toLocaleString('en-US', { minimumFractionDigits: p.price < 1 ? 4 : 2 })}</span>
+                    <span className="text-xs font-bold text-ink dark:text-on-dark">{formatPrice(p.price)}</span>
                     <span className={`text-[9px] font-semibold ${coinIsUp ? 'text-trading-up' : 'text-trading-down'}`}>
                       {coinIsUp ? '+' : ''}{p.change24h}%
                     </span>
@@ -545,11 +745,11 @@ export const Trade: React.FC<TradeProps> = ({ initialSymbol = 'BTC', initialActi
               >
                 <defs>
                   <linearGradient id="gradient-chart" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor={isUp ? '#0ecb81' : '#f6465d'} stopOpacity="0.25" />
-                    <stop offset="100%" stopColor={isUp ? '#0ecb81' : '#f6465d'} stopOpacity="0" />
+                    <stop offset="0%" stopColor={isChartUp ? '#0ecb81' : '#f6465d'} stopOpacity="0.25" />
+                    <stop offset="100%" stopColor={isChartUp ? '#0ecb81' : '#f6465d'} stopOpacity="0" />
                   </linearGradient>
                   <filter id="glow" x="-10%" y="-10%" width="120%" height="120%">
-                    <feDropShadow dx="0" dy="2" stdDeviation="4" floodColor={isUp ? '#0ecb81' : '#f6465d'} floodOpacity="0.3" />
+                    <feDropShadow dx="0" dy="2" stdDeviation="4" floodColor={isChartUp ? '#0ecb81' : '#f6465d'} floodOpacity="0.3" />
                   </filter>
                 </defs>
 
@@ -559,16 +759,39 @@ export const Trade: React.FC<TradeProps> = ({ initialSymbol = 'BTC', initialActi
                 <line x1="20" y1="255" x2="940" y2="255" stroke="currentColor" strokeOpacity="0.05" strokeDasharray="2,2" />
                 <line x1="20" y1="330" x2="940" y2="330" stroke="currentColor" strokeOpacity="0.08" />
 
-                <text x="946" y="34" className="fill-muted text-[9px] font-mono select-none">${chartData.maxP.toLocaleString('en-US', { maximumFractionDigits: 0 })}</text>
-                <text x="946" y="109" className="fill-muted text-[9px] font-mono select-none">${(chartData.minP + chartData.rangeP * (2 / 3)).toLocaleString('en-US', { maximumFractionDigits: 0 })}</text>
-                <text x="946" y="184" className="fill-muted text-[9px] font-mono select-none">${(chartData.minP + chartData.rangeP * (1 / 3)).toLocaleString('en-US', { maximumFractionDigits: 0 })}</text>
-                <text x="946" y="259" className="fill-muted text-[9px] font-mono select-none">${chartData.minP.toLocaleString('en-US', { maximumFractionDigits: 0 })}</text>
+                <text x="946" y="34" className="fill-muted text-[9px] font-mono select-none">{formatPrice(chartData.maxP)}</text>
+                <text x="946" y="109" className="fill-muted text-[9px] font-mono select-none">{formatPrice(chartData.minP + chartData.rangeP * (2 / 3))}</text>
+                <text x="946" y="184" className="fill-muted text-[9px] font-mono select-none">{formatPrice(chartData.minP + chartData.rangeP * (1 / 3))}</text>
+                <text x="946" y="259" className="fill-muted text-[9px] font-mono select-none">{formatPrice(chartData.minP)}</text>
 
-                <text x="20" y="360" className="fill-muted text-[8px] font-mono select-none" textAnchor="start">{chartData.dataPoints[0].time}</text>
-                <text x="250" y="360" className="fill-muted text-[8px] font-mono select-none" textAnchor="middle">{chartData.dataPoints[6].time}</text>
-                <text x="480" y="360" className="fill-muted text-[8px] font-mono select-none" textAnchor="middle">{chartData.dataPoints[12].time}</text>
-                <text x="710" y="360" className="fill-muted text-[8px] font-mono select-none" textAnchor="middle">{chartData.dataPoints[18].time}</text>
-                <text x="940" y="360" className="fill-muted text-[8px] font-mono select-none" textAnchor="end">{chartData.dataPoints[23].time}</text>
+                {(() => {
+                  const indices = [
+                    0,
+                    Math.floor((chartData.dataPoints.length - 1) * 0.25),
+                    Math.floor((chartData.dataPoints.length - 1) * 0.5),
+                    Math.floor((chartData.dataPoints.length - 1) * 0.75),
+                    chartData.dataPoints.length - 1
+                  ];
+                  return indices.map((idx, i) => {
+                    const dp = chartData.dataPoints[idx];
+                    if (!dp) return null;
+                    const x = 20 + (idx / (chartData.dataPoints.length - 1)) * 920;
+                    let anchor = 'middle';
+                    if (i === 0) anchor = 'start';
+                    if (i === 4) anchor = 'end';
+                    return (
+                      <text
+                        key={i}
+                        x={x}
+                        y="360"
+                        className="fill-muted text-[8px] font-mono select-none"
+                        textAnchor={anchor}
+                      >
+                        {dp.time}
+                      </text>
+                    );
+                  });
+                })()}
 
                 {chartData.dataPoints.map((dp, i) => {
                   const barWidth = 8;
@@ -590,7 +813,7 @@ export const Trade: React.FC<TradeProps> = ({ initialSymbol = 'BTC', initialActi
                 <path
                   d={chartData.pointsPath}
                   fill="none"
-                  stroke={isUp ? '#0ecb81' : '#f6465d'}
+                  stroke={isChartUp ? '#0ecb81' : '#f6465d'}
                   strokeWidth="2.5"
                   strokeLinecap="round"
                   strokeLinejoin="round"
@@ -626,14 +849,28 @@ export const Trade: React.FC<TradeProps> = ({ initialSymbol = 'BTC', initialActi
                       cx={20 + (hoverIdx / (chartData.dataPoints.length - 1)) * 920}
                       cy={250 - ((chartData.dataPoints[hoverIdx].price - chartData.minP) / chartData.rangeP) * 220}
                       r="4"
-                      className={isUp ? 'fill-trading-up stroke-white dark:stroke-canvas-dark stroke-2' : 'fill-trading-down stroke-white dark:stroke-canvas-dark stroke-2'}
+                      className={isChartUp ? 'fill-trading-up stroke-white dark:stroke-canvas-dark stroke-2' : 'fill-trading-down stroke-white dark:stroke-canvas-dark stroke-2'}
                     />
 
-                    <g transform={`translate(944, ${250 - ((chartData.dataPoints[hoverIdx].price - chartData.minP) / chartData.rangeP) * 220 - 8})`}>
-                      <rect width="44" height="16" rx="3" className="fill-ink dark:fill-on-dark opacity-90" />
-                      <text x="22" y="11" textAnchor="middle" className="fill-white dark:fill-canvas-dark text-[9px] font-mono font-semibold select-none">
-                        ${chartData.dataPoints[hoverIdx].price.toLocaleString('en-US', { maximumFractionDigits: 0 })}
-                      </text>
+                    <g transform={(() => {
+                      const txt = formatPrice(chartData.dataPoints[hoverIdx].price);
+                      const boxW = Math.max(44, txt.length * 6 + 8);
+                      const yPos = 250 - ((chartData.dataPoints[hoverIdx].price - chartData.minP) / chartData.rangeP) * 220 - 8;
+                      const xPos = 944 - (boxW - 44);
+                      return `translate(${xPos}, ${yPos})`;
+                    })()}>
+                      {(() => {
+                        const txt = formatPrice(chartData.dataPoints[hoverIdx].price);
+                        const boxW = Math.max(44, txt.length * 6 + 8);
+                        return (
+                          <>
+                            <rect width={boxW} height="16" rx="3" className="fill-ink dark:fill-on-dark opacity-90" />
+                            <text x={boxW / 2} y="11" textAnchor="middle" className="fill-white dark:fill-canvas-dark text-[9px] font-mono font-semibold select-none">
+                              {txt}
+                            </text>
+                          </>
+                        );
+                      })()}
                     </g>
 
                     <g transform={`translate(${20 + (hoverIdx / (chartData.dataPoints.length - 1)) * 920 - 24}, 332)`}>
@@ -649,7 +886,7 @@ export const Trade: React.FC<TradeProps> = ({ initialSymbol = 'BTC', initialActi
               {renderTooltip()}
 
               <div className="absolute top-4 left-4 p-2 bg-black/40 text-on-dark rounded text-[10px] font-mono select-none">
-                Min: ${chartData.minP.toLocaleString('en-US', { minimumFractionDigits: 2 })} - Max: ${chartData.maxP.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                Min: {formatPrice(chartData.minP)} - Max: {formatPrice(chartData.maxP)}
               </div>
             </div>
           </div>
@@ -694,8 +931,8 @@ export const Trade: React.FC<TradeProps> = ({ initialSymbol = 'BTC', initialActi
                             <span>{asset.symbol} / USD</span>
                           </td>
                           <td className="py-3 px-2 text-right font-bold">{asset.amount.toLocaleString()} {asset.symbol}</td>
-                          <td className="py-3 px-2 text-right text-muted">${asset.avgBuyPrice.toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
-                          <td className="py-3 px-2 text-right">${currentP.toLocaleString('en-US', { minimumFractionDigits: 2 })}</td>
+                          <td className="py-3 px-2 text-right text-muted">{formatPrice(asset.avgBuyPrice)}</td>
+                          <td className="py-3 px-2 text-right">{formatPrice(currentP)}</td>
                           <td className="py-3 px-2 text-right font-bold">${currentValue.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</td>
                           <td className={`py-3 px-2 text-right font-bold ${isProfit ? 'text-trading-up' : 'text-trading-down'}`}>
                             {isProfit ? '+' : ''}${pnl.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} ({isProfit ? '+' : ''}{pnlPct.toFixed(2)}%)
@@ -797,7 +1034,7 @@ export const Trade: React.FC<TradeProps> = ({ initialSymbol = 'BTC', initialActi
               <div className="p-4 bg-white dark:bg-canvas-dark border border-hairline-light dark:border-hairline-dark rounded-md flex flex-col gap-1 text-left">
                 <span className="text-[10px] text-muted font-semibold">{t('tradeTotalLabel')}</span>
                 <span className="text-lg font-bold font-mono">
-                  ${calculatedTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                  {formatPrice(calculatedTotal)}
                 </span>
               </div>
 

@@ -1,5 +1,21 @@
 const API_BASE = '/api';
 
+// Intercept all fetch requests to automatically log out on 401 Unauthorized (e.g. session expired)
+const originalFetch = window.fetch;
+window.fetch = async (...args) => {
+  const response = await originalFetch(...args);
+  if (response.status === 401 || response.status === 403) {
+    console.warn("Session expired or unauthorized (401/403). Auto logging out...");
+    localStorage.removeItem('zyptox_user');
+    // If not already on landing page, reload to trigger auth state reset
+    if (window.location.pathname !== '/' || localStorage.getItem('zyptox_user') !== null) {
+      window.location.reload();
+    }
+  }
+  return response;
+};
+
+
 export interface User {
   username: string;
   balance: number;
@@ -243,5 +259,11 @@ export const api = {
 
     const data = await response.json(); // contains answer
     return data.answer || data.message || '';
+  },
+
+  getKlines: async (symbol: string, interval: string, limit: number): Promise<any[][]> => {
+    const response = await fetch(`${API_BASE}/prices/${symbol}/klines?interval=${interval}&limit=${limit}`);
+    if (!response.ok) throw new Error('Failed to fetch klines');
+    return response.json();
   },
 };

@@ -24,8 +24,16 @@ public class PriceController {
         return priceService.getPrice(symbol);
     }
 
+    @GetMapping("/{symbol}/klines")
+    public List<List<Object>> getKlines(
+            @PathVariable String symbol,
+            @RequestParam(defaultValue = "1h") String interval,
+            @RequestParam(defaultValue = "24") Integer limit) {
+        return priceService.getKlines(symbol, interval, limit);
+    }
+
     @PostMapping("/fluctuate")
     public List<MarketPriceResponse> fluctuatePrices() {
-        return priceService.fluctuatePrices();
+        return priceService.getPrices();
     }
 }

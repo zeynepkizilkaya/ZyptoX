@@ -88,19 +88,32 @@ public class WalletService {
     }
 
     private BigDecimal calculateAvgBuyPrice(Long userId, String symbol) {
-        List<Transaction> txs = transactionRepository.findByUserIdOrderByExecutedAtDesc(userId);
-        BigDecimal totalCost = BigDecimal.ZERO;
-        BigDecimal totalVolume = BigDecimal.ZERO;
+        List<Transaction> txs = transactionRepository.findByUserIdOrderByExecutedAtAsc(userId);
+        BigDecimal currentVolume = BigDecimal.ZERO;
+        BigDecimal currentAvgPrice = BigDecimal.ZERO;
 
         for (Transaction tx : txs) {
-            if (tx.getAssetSymbol().equalsIgnoreCase(symbol) && "BUY".equalsIgnoreCase(tx.getType())) {
-                BigDecimal cost = tx.getVolume().multiply(tx.getPrice());
-                totalCost = totalCost.add(cost);
-                totalVolume = totalVolume.add(tx.getVolume());
+            if (tx.getAssetSymbol().equalsIgnoreCase(symbol)) {
+                if ("BUY".equalsIgnoreCase(tx.getType())) {
+                    BigDecimal totalCost = currentVolume.multiply(currentAvgPrice)
+                            .add(tx.getVolume().multiply(tx.getPrice()));
+                    currentVolume = currentVolume.add(tx.getVolume());
+                    if (currentVolume.compareTo(BigDecimal.ZERO) > 0) {
+                        currentAvgPrice = totalCost.divide(currentVolume, 8, RoundingMode.HALF_UP);
+                    } else {
+                        currentAvgPrice = BigDecimal.ZERO;
+                    }
+                } else if ("SELL".equalsIgnoreCase(tx.getType())) {
+                    currentVolume = currentVolume.subtract(tx.getVolume());
+                    if (currentVolume.compareTo(BigDecimal.ZERO) <= 0) {
+                        currentVolume = BigDecimal.ZERO;
+                        currentAvgPrice = BigDecimal.ZERO;
+                    }
+                }
             }
         }
 
-        if (totalVolume.compareTo(BigDecimal.ZERO) == 0) {
+        if (currentVolume.compareTo(BigDecimal.ZERO) == 0 || currentAvgPrice.compareTo(BigDecimal.ZERO) == 0) {
             try {
                 return priceService.getPrice(symbol).getPrice();
             } catch (Exception e) {
@@ -108,6 +121,6 @@ public class WalletService {
             }
         }
 
-        return totalCost.divide(totalVolume, 8, RoundingMode.HALF_UP);
+        return currentAvgPrice;
     }
 }

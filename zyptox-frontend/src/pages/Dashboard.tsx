@@ -30,6 +30,21 @@ export const Dashboard: React.FC<DashboardProps> = ({ onTradeSelect, onSignUpSel
   const { user, isAuthenticated } = useAuth();
   const { t } = useLanguage();
 
+  const formatPrice = (val: number, includeSymbol = true) => {
+    const prefix = includeSymbol ? '$' : '';
+    if (val === 0) return `${prefix}0.00`;
+    if (val < 0.001) {
+      return `${prefix}${val.toLocaleString('en-US', { minimumFractionDigits: 8, maximumFractionDigits: 8 })}`;
+    }
+    if (val < 1) {
+      return `${prefix}${val.toLocaleString('en-US', { minimumFractionDigits: 6, maximumFractionDigits: 6 })}`;
+    }
+    if (val < 10) {
+      return `${prefix}${val.toLocaleString('en-US', { minimumFractionDigits: 4, maximumFractionDigits: 4 })}`;
+    }
+    return `${prefix}${val.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  };
+
   const [activeTab, setActiveTab] = useState<'popular' | 'new' | 'gainers'>('popular');
   const [searchValue, setSearchValue] = useState('');
   const [assets, setAssets] = useState<Asset[]>([]);
@@ -59,14 +74,14 @@ export const Dashboard: React.FC<DashboardProps> = ({ onTradeSelect, onSignUpSel
     }
 
     if (activeTab === 'new') {
-      return list.filter(p => ['SOL', 'ADA', 'DOT', 'DOGE', 'AVAX'].includes(p.symbol));
+      return list.filter(p => ['PEPE', 'WIF', 'RENDER', 'SUI', 'APT', 'TIA'].includes(p.symbol));
     }
 
     if (activeTab === 'gainers') {
       return list.sort((a, b) => b.change24h - a.change24h).slice(0, 5);
     }
 
-    return list.filter(p => ['BTC', 'ETH', 'SOL', 'BNB', 'XRP', 'AVAX', 'LINK'].includes(p.symbol));
+    return list.filter(p => ['BTC', 'ETH', 'SOL', 'BNB', 'XRP', 'DOGE', 'ADA', 'SHIB', 'LINK', 'AVAX', 'TON'].includes(p.symbol));
   };
 
 
@@ -174,7 +189,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onTradeSelect, onSignUpSel
                     </span>
 
                     <div className="text-lg font-black font-mono text-ink dark:text-on-dark mt-2">
-                      ${item.price.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                      {formatPrice(item.price)}
                     </div>
 
                     <div className="flex flex-col gap-1 mt-3.5 border-t border-hairline-light/40 dark:border-hairline-dark/15 pt-2 select-none">
@@ -236,24 +251,24 @@ export const Dashboard: React.FC<DashboardProps> = ({ onTradeSelect, onSignUpSel
 
           <div className="w-full bg-[#fafafa] dark:bg-surface-card-dark border border-hairline-light dark:border-hairline-dark rounded-xl p-6 shadow-sm overflow-x-auto">
 
-            <div className="flex gap-6 border-b border-hairline-light dark:border-hairline-dark mb-4 pb-1">
+            <div className="flex gap-2 border-b border-hairline-light dark:border-hairline-dark mb-4 pb-1">
               <button
                 onClick={() => setActiveTab('popular')}
-                className={`text-sm font-semibold pb-2 border-b-2 transition-colors ${activeTab === 'popular' ? 'border-primary text-ink dark:text-on-dark' : 'border-transparent text-muted hover:text-ink dark:hover:text-on-dark'
+                className={`w-44 text-center text-sm font-semibold pb-2 border-b-2 transition-colors ${activeTab === 'popular' ? 'border-primary text-ink dark:text-on-dark' : 'border-transparent text-muted hover:text-ink dark:hover:text-on-dark'
                   }`}
               >
                 {t('popularCoins')}
               </button>
               <button
                 onClick={() => setActiveTab('new')}
-                className={`text-sm font-semibold pb-2 border-b-2 transition-colors ${activeTab === 'new' ? 'border-primary text-ink dark:text-on-dark' : 'border-transparent text-muted hover:text-ink dark:hover:text-on-dark'
+                className={`w-44 text-center text-sm font-semibold pb-2 border-b-2 transition-colors ${activeTab === 'new' ? 'border-primary text-ink dark:text-on-dark' : 'border-transparent text-muted hover:text-ink dark:hover:text-on-dark'
                   }`}
               >
                 {t('newCoins')}
               </button>
               <button
                 onClick={() => setActiveTab('gainers')}
-                className={`text-sm font-semibold pb-2 border-b-2 transition-colors ${activeTab === 'gainers' ? 'border-primary text-ink dark:text-on-dark' : 'border-transparent text-muted hover:text-ink dark:hover:text-on-dark'
+                className={`w-44 text-center text-sm font-semibold pb-2 border-b-2 transition-colors ${activeTab === 'gainers' ? 'border-primary text-ink dark:text-on-dark' : 'border-transparent text-muted hover:text-ink dark:hover:text-on-dark'
                   }`}
               >
                 {t('topGainers')}
@@ -293,7 +308,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onTradeSelect, onSignUpSel
                       </td>
 
                       <td className="py-4 px-4 font-mono font-semibold text-ink dark:text-on-dark">
-                        ${coin.price.toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                        {formatPrice(coin.price)}
                       </td>
 
                       <td className={`py-4 px-4 font-mono font-semibold ${isUp ? 'text-trading-up' : 'text-trading-down'}`}>

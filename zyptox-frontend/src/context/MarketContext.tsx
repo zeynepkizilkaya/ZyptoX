@@ -33,10 +33,9 @@ export const MarketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
 
     const interval = setInterval(async () => {
       try {
-        const updated = await api.fluctuatePrices();
-        setPrices(updated);
+        await refreshPrices();
       } catch (err) {
-        console.error('Price fluctuation failed', err);
+        console.error('Failed to refresh prices', err);
       }
     }, 15000);
 

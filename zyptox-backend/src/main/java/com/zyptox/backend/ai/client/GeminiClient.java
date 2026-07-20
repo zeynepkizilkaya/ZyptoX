@@ -35,23 +35,32 @@ public class GeminiClient {
         System.out.println("Target URL: " + url);
         System.out.println("--------------------------------");
 
+        boolean isAccessToken = apiKey != null && (apiKey.startsWith("AQ.") || apiKey.startsWith("ya29."));
+
         try {
-            return restClient.post()
+            var spec = restClient.post()
                     .uri(url)
-                    .header("x-goog-api-key", geminiConfig.getApiKey())
                     .contentType(MediaType.APPLICATION_JSON)
-                    .body(request)
-                    .retrieve()
-                    .body(GeminiResponse.class);
+                    .body(request);
+            
+            if (isAccessToken) {
+                spec.header("Authorization", "Bearer " + apiKey);
+            } else {
+                spec.header("x-goog-api-key", apiKey);
+            }
+
+            return spec.retrieve().body(GeminiResponse.class);
         } catch (Exception e) {
             System.out.println("--- ERROR: Listing Authorized Models for Diagnostic ---");
             try {
                 String listUrl = "https://generativelanguage.googleapis.com/v1/models";
-                String responseBody = restClient.get()
-                        .uri(listUrl)
-                        .header("x-goog-api-key", geminiConfig.getApiKey())
-                        .retrieve()
-                        .body(String.class);
+                var getSpec = restClient.get().uri(listUrl);
+                if (isAccessToken) {
+                    getSpec.header("Authorization", "Bearer " + apiKey);
+                } else {
+                    getSpec.header("x-goog-api-key", apiKey);
+                }
+                String responseBody = getSpec.retrieve().body(String.class);
                 System.out.println("Available Models: " + responseBody);
             } catch (Exception listEx) {
                 System.out.println("Failed to list models. Error: " + listEx.getMessage());

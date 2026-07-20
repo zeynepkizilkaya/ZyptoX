@@ -7,11 +7,14 @@ import com.zyptox.backend.ai.dto.UserContext;
 import com.zyptox.backend.ai.dto.gemini.GeminiResponse;
 import com.zyptox.backend.ai.parser.ResponseParser;
 import com.zyptox.backend.ai.prompt.PromptBuilder;
+import com.zyptox.backend.service.PriceService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import com.zyptox.backend.ai.security.InputGuard;
-import com.zyptox.backend.ai.service.ConversationMemoryService;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -25,6 +28,7 @@ public class AIChatService {
     private final ResponseParser responseParser;
     private final InputGuard inputGuard;
     private final ConversationMemoryService conversationMemoryService;
+    private final PriceService priceService;
     
 
     public AIChatService(
@@ -33,7 +37,8 @@ public class AIChatService {
             GeminiClient geminiClient,
             InputGuard inputGuard,
             ConversationMemoryService conversationMemoryService,
-            ResponseParser responseParser) {
+            ResponseParser responseParser,
+            PriceService priceService) {
 
         this.contextBuilder = contextBuilder;
         this.promptBuilder = promptBuilder;
@@ -41,6 +46,7 @@ public class AIChatService {
         this.responseParser = responseParser;
         this.inputGuard = inputGuard;
         this.conversationMemoryService = conversationMemoryService;
+        this.priceService = priceService;
     }
 
     public ChatResponse chat(Long userId, String message) {
@@ -104,6 +110,63 @@ public class AIChatService {
                 String name = m.group(1);
                 String price = m.group(2);
                 String change = m.group(3);
+
+                // Check if user requested 1-week or 7-day trend analysis
+                if (query.contains("week") || query.contains("hafta") || query.contains("yedi gün") || query.contains("7 gün") || query.contains("trend")) {
+                    try {
+                        List<List<Object>> klines = priceService.getKlines(targetSymbol, "1d", 7);
+                        if (klines != null && klines.size() >= 5) {
+                            BigDecimal startPrice = new BigDecimal(klines.get(0).get(1).toString());
+                            BigDecimal endPrice = new BigDecimal(klines.get(klines.size() - 1).get(4).toString());
+                            BigDecimal weekChange = endPrice.subtract(startPrice)
+                                    .divide(startPrice, 4, RoundingMode.HALF_UP)
+                                    .multiply(BigDecimal.valueOf(100));
+
+                            BigDecimal highest = BigDecimal.ZERO;
+                            BigDecimal lowest = BigDecimal.valueOf(999999999);
+                            for (List<Object> k : klines) {
+                                BigDecimal h = new BigDecimal(k.get(2).toString());
+                                BigDecimal l = new BigDecimal(k.get(3).toString());
+                                if (h.compareTo(highest) > 0) highest = h;
+                                if (l.compareTo(lowest) < 0) lowest = l;
+                            }
+
+                            String trendIndicator = weekChange.compareTo(BigDecimal.ZERO) >= 0 ? "📈 YÜKSELİŞ" : "📉 DÜŞÜŞ";
+                            String trendIndicatorEn = weekChange.compareTo(BigDecimal.ZERO) >= 0 ? "📈 BULLISH" : "📉 BEARISH";
+
+                            if (isTurkish) {
+                                return String.format(
+                                        "### 📊 %s (%s) Son 1 Haftalık (7 Günlük) Performans Analizi\n\n" +
+                                        "- **Güncel Fiyat**: $%s\n" +
+                                        "- **1 Hafta Önceki Fiyat**: $%s\n" +
+                                        "- **Haftalık Net Değişim**: %s%%\n" +
+                                        "- **Haftalık En Yüksek Seviye**: $%s\n" +
+                                        "- **Haftalık En Düşük Seviye**: $%s\n" +
+                                        "- **Genel Trend Görünümü**: **%s**\n\n" +
+                                        "Bu veriler Binance API üzerinden gerçek zamanlı günlük mum verileri (klines) tünellenerek hesaplanmıştır.",
+                                        targetSymbol, name, endPrice.setScale(2, RoundingMode.HALF_UP), startPrice.setScale(2, RoundingMode.HALF_UP),
+                                        weekChange.setScale(2, RoundingMode.HALF_UP), highest.setScale(2, RoundingMode.HALF_UP), lowest.setScale(2, RoundingMode.HALF_UP), trendIndicator
+                                );
+                            } else {
+                                return String.format(
+                                        "### 📊 %s (%s) Last 1 Week (7 Days) Performance Analysis\n\n" +
+                                        "- **Current Price**: $%s\n" +
+                                        "- **Price 7 Days Ago**: $%s\n" +
+                                        "- **Weekly Net Change**: %s%%\n" +
+                                        "- **Weekly High**: $%s\n" +
+                                        "- **Weekly Low**: $%s\n" +
+                                        "- **Overall Trend**: **%s**\n\n" +
+                                        "These metrics are computed in real-time from daily candles via Binance API.",
+                                        targetSymbol, name, endPrice.setScale(2, RoundingMode.HALF_UP), startPrice.setScale(2, RoundingMode.HALF_UP),
+                                        weekChange.setScale(2, RoundingMode.HALF_UP), highest.setScale(2, RoundingMode.HALF_UP), lowest.setScale(2, RoundingMode.HALF_UP), trendIndicatorEn
+                                );
+                            }
+                        }
+                    } catch (Exception e) {
+                        log.error("Failed to build weekly fallback analysis for " + targetSymbol, e);
+                    }
+                }
+
                 if (isTurkish) {
                     return String.format("### 📈 %s (%s) Fiyat Bilgisi\n\n- **Güncel Fiyat**: $%s\n- **24 Saatlik Değişim**: %s\n\nAl-Sat sekmesini kullanarak bu fiyattan emir gerçekleştirebilirsiniz.", targetSymbol, name, price, change);
                 } else {
